@@ -126,6 +126,11 @@ export default function GSTToolsPage() {
     // GSTR-3B helper
     const [g3b, setG3b] = useState({ taxableSupply: '', igst: '', cgst: '', sgst: '', cess: '', itcIgst: '', itcCgst: '', itcSgst: '' });
 
+    // GSTR-1 JSON generator
+    const [gstr1Entries, setGstr1Entries] = useState<any[]>([]);
+    const [gstr1Form, setGstr1Form] = useState({ gstin: '', invoiceNo: '', date: '', taxableValue: '', rate: '18', pos: '27' });
+    const [gstr1Gstin, setGstr1Gstin] = useState('');
+
     const allCodes = [...HSN_CODES.map(c => ({ ...c, type: 'HSN' })), ...SAC_CODES.map(c => ({ ...c, type: 'SAC' }))];
     const filteredCodes = hsnSearch ? allCodes.filter(c => c.code.includes(hsnSearch) || c.desc.toLowerCase().includes(hsnSearch.toLowerCase())).slice(0, 30) : allCodes.slice(0, 30);
 
@@ -137,9 +142,48 @@ export default function GSTToolsPage() {
 
     const tabs = [
         { id: 'hsn', label: 'HSN/SAC Search', icon: '🔍' },
+        { id: 'gstr1', label: 'GSTR-1 Generator', icon: '📤' },
         { id: 'gstr3b', label: 'GSTR-3B Helper', icon: '📊' },
         { id: 'pos', label: 'Place of Supply', icon: '📍' },
     ];
+
+    const addGstr1Entry = () => {
+        if (!gstr1Form.gstin || !gstr1Form.invoiceNo || !gstr1Form.taxableValue) return;
+        const tv = Number(gstr1Form.taxableValue);
+        const rate = Number(gstr1Form.rate);
+        const supplierState = gstr1Gstin.substring(0, 2);
+        const isInterState = gstr1Form.pos !== supplierState;
+        setGstr1Entries(prev => [...prev, {
+            ...gstr1Form,
+            taxableValue: tv,
+            igst: isInterState ? Math.round(tv * rate / 100) : 0,
+            cgst: !isInterState ? Math.round(tv * rate / 200) : 0,
+            sgst: !isInterState ? Math.round(tv * rate / 200) : 0,
+        }]);
+        setGstr1Form({ gstin: '', invoiceNo: '', date: '', taxableValue: '', rate: '18', pos: '27' });
+    };
+
+    const downloadGstr1Json = () => {
+        const json = {
+            gstin: gstr1Gstin,
+            fp: new Date().toLocaleDateString('en-IN', { month: '2-digit', year: 'numeric' }).replace('/', ''),
+            b2b: Object.values(gstr1Entries.reduce((acc: any, e: any) => {
+                if (!acc[e.gstin]) acc[e.gstin] = { ctin: e.gstin, inv: [] };
+                acc[e.gstin].inv.push({
+                    inum: e.invoiceNo, idt: e.date, val: e.taxableValue + e.igst + e.cgst + e.sgst,
+                    pos: e.pos, rchrg: 'N', inv_typ: 'R',
+                    itms: [{ num: 1, itm_det: { txval: e.taxableValue, rt: Number(e.rate), iamt: e.igst, camt: e.cgst, samt: e.sgst, csamt: 0 } }],
+                });
+                return acc;
+            }, {})),
+        };
+        const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `GSTR1_${gstr1Gstin}_${json.fp}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    };
 
     return (
         <div className="animate-fadeIn">
@@ -287,6 +331,74 @@ export default function GSTToolsPage() {
                             </div>
                         )}
                     </div>
+                </div>
+            )}
+
+            {/* GSTR-1 JSON Generator */}
+            {activeTab === 'gstr1' && (
+                <div className="glass-card" style={{ padding: 24 }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>📤 Generate GSTR-1 JSON for GSTN Upload</h3>
+                    <div style={{ marginBottom: 16 }}>
+                        <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, display: 'block' }}>Your GSTIN</label>
+                        <input type="text" value={gstr1Gstin} onChange={e => setGstr1Gstin(e.target.value.toUpperCase())} maxLength={15}
+                            placeholder="27AXXXX1234X1ZX" style={{ width: 280, padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14, fontFamily: 'monospace' }} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 80px 80px auto', gap: 8, marginBottom: 12, alignItems: 'end' }}>
+                        {[{ label: 'Buyer GSTIN', key: 'gstin', ph: '29BXXXX5678Y1ZZ', maxLen: 15 },
+                        { label: 'Invoice No', key: 'invoiceNo', ph: 'INV-001' },
+                        { label: 'Invoice Date', key: 'date', ph: '15-03-2026' },
+                        { label: 'Taxable Value (₹)', key: 'taxableValue', ph: '50000', type: 'number' },
+                        ].map(f => (
+                            <div key={f.key}>
+                                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 2 }}>{f.label}</label>
+                                <input type={f.type || 'text'} value={(gstr1Form as any)[f.key]} onChange={e => setGstr1Form(p => ({ ...p, [f.key]: e.target.value }))} maxLength={f.maxLen}
+                                    placeholder={f.ph} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 12 }} />
+                            </div>
+                        ))}
+                        <div>
+                            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 2 }}>Rate</label>
+                            <select value={gstr1Form.rate} onChange={e => setGstr1Form(p => ({ ...p, rate: e.target.value }))} style={{ width: '100%', padding: '8px 6px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 12 }}>
+                                {[0, 0.25, 3, 5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 2 }}>POS</label>
+                            <select value={gstr1Form.pos} onChange={e => setGstr1Form(p => ({ ...p, pos: e.target.value }))} style={{ width: '100%', padding: '8px 6px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 12 }}>
+                                {STATES.map(s => <option key={s.code} value={s.code}>{s.code}</option>)}
+                            </select>
+                        </div>
+                        <div><button onClick={addGstr1Entry} style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #C9A84C, #E8CC7D)', color: '#0f172a', fontWeight: 700, fontSize: 12, cursor: 'pointer', marginTop: 14 }}>➕ Add</button></div>
+                    </div>
+
+                    {gstr1Entries.length > 0 && (
+                        <>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16 }}>
+                                <thead><tr>
+                                    {['Buyer GSTIN', 'Invoice', 'Date', 'Taxable', 'IGST', 'CGST', 'SGST', 'Total'].map(h => (
+                                        <th key={h} style={{ textAlign: h === 'Buyer GSTIN' || h === 'Invoice' || h === 'Date' ? 'left' : 'right', padding: '8px 10px', borderBottom: '1px solid var(--border-color)', fontSize: 11, fontWeight: 700, color: '#C9A84C' }}>{h}</th>
+                                    ))}
+                                </tr></thead>
+                                <tbody>
+                                    {gstr1Entries.map((e, i) => (
+                                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <td style={{ padding: '8px 10px', fontSize: 12, fontFamily: 'monospace' }}>{e.gstin}</td>
+                                            <td style={{ padding: '8px 10px', fontSize: 12 }}>{e.invoiceNo}</td>
+                                            <td style={{ padding: '8px 10px', fontSize: 12 }}>{e.date}</td>
+                                            <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'right' }}>₹{e.taxableValue.toLocaleString('en-IN')}</td>
+                                            <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'right', color: '#6366f1' }}>₹{e.igst.toLocaleString('en-IN')}</td>
+                                            <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'right', color: '#22c55e' }}>₹{e.cgst.toLocaleString('en-IN')}</td>
+                                            <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'right', color: '#22c55e' }}>₹{e.sgst.toLocaleString('en-IN')}</td>
+                                            <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'right', fontWeight: 700 }}>₹{(e.taxableValue + e.igst + e.cgst + e.sgst).toLocaleString('en-IN')}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            <div style={{ display: 'flex', gap: 12 }}>
+                                <button onClick={downloadGstr1Json} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #C9A84C, #E8CC7D)', color: '#0f172a', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>📁 Download GSTR-1 JSON</button>
+                                <button onClick={() => setGstr1Entries([])} style={{ padding: '10px 24px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>🗑️ Clear All</button>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
         </div>
