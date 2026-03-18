@@ -1,0 +1,249 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("prisma+postgres://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqd3RfaWQiOjEsInNlY3VyZV9rZXkiOiJza19BT3hMTGFsRVNMRGUtcHJQWDF1ek8iLCJhcGlfa2V5IjoiMDFLS0U2NDEzUjBLRjFOTTYzRUhSNDRDMUciLCJ0ZW5hbnRfaWQiOiJkY2NhMTUyODg4MDZkNzdiMTI3NGNiMTc3YWYyNTZhYTVjYmUzNzM2OGE5ZWRmMjIxMDMxN2VhOGI3NzhkYTIwIiwiaW50ZXJuYWxfc2VjcmV0IjoiNzhmZWYzZjEtZjY0Ny00YzI1LTg0MGItYzBkNzA2OTA2YzU3In0.hrRuP4uppVqS3uqYDBNE7b3OS44zTC3rr7ng5_6kfi4")
+}
+
+model User {
+    id        String   @id @default(uuid())
+    email     String   @unique
+    password  String
+    name      String
+    firmName  String   @default("") @map("firm_name")
+    phone     String   @default("")
+    role      String   @default("ca")
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    clients         Client[]
+    bankStatements  BankStatement[]
+    activityLogs    ActivityLog[]
+    invoices        Invoice[]
+    complianceTasks ComplianceTask[]
+    clientDocuments ClientDocument[]
+    clientNotes     ClientNote[]
+    clientTimelines ClientTimeline[]
+    workItems       WorkItem[]
+
+    @@map("users")
+}
+
+model Client {
+    id           String   @id @default(uuid())
+    userId       String   @map("user_id")
+    name         String
+    email        String   @default("")
+    phone        String   @default("")
+    gstin        String   @default("")
+    pan          String   @default("")
+    address      String   @default("")
+    businessType String   @default("") @map("business_type")
+    status       String   @default("active")
+    notes        String   @default("")
+    createdAt    DateTime @default(now()) @map("created_at")
+    updatedAt    DateTime @updatedAt @map("updated_at")
+
+    user           User             @relation(fields: [userId], references: [id])
+    bankStatements BankStatement[]
+    documents      ClientDocument[]
+    clientNotes    ClientNote[]
+    timelines      ClientTimeline[]
+    workItems      WorkItem[]
+
+    @@index([userId])
+    @@map("clients")
+}
+
+model BankStatement {
+    id                String    @id @default(uuid())
+    userId            String    @map("user_id")
+    clientId          String?   @map("client_id")
+    originalFilename  String    @map("original_filename")
+    storedFilename    String    @map("stored_filename")
+    fileType          String    @map("file_type")
+    bankName          String    @default("Unknown") @map("bank_name")
+    accountNumber     String    @default("") @map("account_number")
+    periodFrom        DateTime? @map("period_from")
+    periodTo          DateTime? @map("period_to")
+    totalTransactions Int       @default(0) @map("total_transactions")
+    totalDebit        Float     @default(0) @map("total_debit")
+    totalCredit       Float     @default(0) @map("total_credit")
+    closingBalance    Float     @default(0) @map("closing_balance")
+    status            String    @default("uploaded")
+    errorMessage      String    @default("") @map("error_message")
+    createdAt         DateTime  @default(now()) @map("created_at")
+
+    user         User          @relation(fields: [userId], references: [id])
+    client       Client?       @relation(fields: [clientId], references: [id])
+    transactions Transaction[]
+
+    @@index([userId])
+    @@map("bank_statements")
+}
+
+model Transaction {
+    id          String   @id @default(uuid())
+    statementId String   @map("statement_id")
+    date        DateTime
+    description String
+    reference   String   @default("")
+    debit       Float    @default(0)
+    credit      Float    @default(0)
+    balance     Float    @default(0)
+    category    String   @default("uncategorized")
+    paymentMode String   @default("other") @map("payment_mode")
+    narration   String   @default("")
+    ledgerName  String   @default("") @map("ledger_name")
+    rowNumber   Int      @default(0) @map("row_number")
+    createdAt   DateTime @default(now()) @map("created_at")
+
+    statement BankStatement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+    @@index([statementId])
+    @@map("transactions")
+}
+
+model ActivityLog {
+    id         String   @id @default(uuid())
+    userId     String   @map("user_id")
+    action     String
+    entityType String   @map("entity_type")
+    entityId   String   @default("") @map("entity_id")
+    details    String   @default("")
+    createdAt  DateTime @default(now()) @map("created_at")
+
+    user User @relation(fields: [userId], references: [id])
+
+    @@index([userId])
+    @@index([createdAt])
+    @@map("activity_log")
+}
+
+model Invoice {
+    id               String    @id @default(uuid())
+    userId           String    @map("user_id")
+    invoiceNumber    String    @map("invoice_number")
+    invoiceType      String    @default("TAX_INVOICE") @map("invoice_type")
+    invoiceDate      DateTime? @map("invoice_date")
+    dueDate          DateTime? @map("due_date")
+    clientName       String    @default("") @map("client_name")
+    clientGstin      String    @default("") @map("client_gstin")
+    clientAddress    String    @default("") @map("client_address")
+    clientState      String    @default("") @map("client_state")
+    sellerName       String    @default("") @map("seller_name")
+    sellerGstin      String    @default("") @map("seller_gstin")
+    sellerAddress    String    @default("") @map("seller_address")
+    sellerState      String    @default("") @map("seller_state")
+    items            String    @default("[]")
+    taxableValue     Float     @default(0) @map("taxable_value")
+    cgst             Float     @default(0)
+    sgst             Float     @default(0)
+    igst             Float     @default(0)
+    roundOff         Float     @default(0) @map("round_off")
+    grandTotal       Float     @default(0) @map("grand_total")
+    notes            String    @default("")
+    status           String    @default("DRAFT")
+    paymentAmount    Float     @default(0) @map("payment_amount")
+    paymentDate      DateTime? @map("payment_date")
+    paymentMethod    String    @default("") @map("payment_method")
+    paymentReference String    @default("") @map("payment_reference")
+    createdAt        DateTime  @default(now()) @map("created_at")
+    updatedAt        DateTime? @map("updated_at")
+
+    user User @relation(fields: [userId], references: [id])
+
+    @@map("invoices")
+}
+
+model ComplianceTask {
+    id          String    @id @default(uuid())
+    userId      String    @map("user_id")
+    title       String
+    type        String    @default("CUSTOM")
+    category    String    @default("OTHER")
+    dueDate     DateTime  @map("due_date")
+    description String    @default("")
+    status      String    @default("PENDING")
+    completedAt DateTime? @map("completed_at")
+    createdAt   DateTime  @default(now()) @map("created_at")
+
+    user User @relation(fields: [userId], references: [id])
+
+    @@map("compliance_tasks")
+}
+
+model ClientDocument {
+    id         String   @id @default(uuid())
+    clientId   String   @map("client_id")
+    userId     String   @map("user_id")
+    fileName   String   @map("file_name")
+    storedName String   @map("stored_name")
+    fileSize   Int      @default(0) @map("file_size")
+    category   String   @default("Other")
+    notes      String   @default("")
+    uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+    client Client @relation(fields: [clientId], references: [id])
+    user   User   @relation(fields: [userId], references: [id])
+
+    @@index([clientId])
+    @@map("client_documents")
+}
+
+model ClientNote {
+    id        String   @id @default(uuid())
+    clientId  String   @map("client_id")
+    userId    String   @map("user_id")
+    content   String
+    isPinned  Boolean  @default(false) @map("is_pinned")
+    createdAt DateTime @default(now()) @map("created_at")
+
+    client Client @relation(fields: [clientId], references: [id])
+    user   User   @relation(fields: [userId], references: [id])
+
+    @@index([clientId])
+    @@map("client_notes")
+}
+
+model ClientTimeline {
+    id         String   @id @default(uuid())
+    clientId   String   @map("client_id")
+    userId     String   @map("user_id")
+    action     String
+    entityType String   @default("") @map("entity_type")
+    details    String   @default("")
+    createdAt  DateTime @default(now()) @map("created_at")
+
+    client Client @relation(fields: [clientId], references: [id])
+    user   User   @relation(fields: [userId], references: [id])
+
+    @@index([clientId])
+    @@map("client_timelines")
+}
+
+model WorkItem {
+    id          String    @id @default(uuid())
+    userId      String    @map("user_id")
+    clientId    String?   @map("client_id")
+    title       String
+    category    String    @default("General")
+    status      String    @default("TODO")
+    priority    String    @default("MEDIUM")
+    dueDate     DateTime? @map("due_date")
+    assignedTo  String    @default("") @map("assigned_to")
+    hoursSpent  Float     @default(0) @map("hours_spent")
+    billingRate Float     @default(0) @map("billing_rate")
+    notes       String    @default("")
+    createdAt   DateTime  @default(now()) @map("created_at")
+    updatedAt   DateTime  @updatedAt @map("updated_at")
+
+    user   User    @relation(fields: [userId], references: [id])
+    client Client? @relation(fields: [clientId], references: [id])
+
+    @@index([userId])
+    @@index([clientId])
+    @@map("work_items")
+}
