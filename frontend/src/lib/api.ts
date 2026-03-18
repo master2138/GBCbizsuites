@@ -243,6 +243,26 @@ class ApiClient {
         return this.request('/calculators/depreciation', { method: 'POST', body: JSON.stringify(data) });
     }
 
+    async calcRegimeOptimizer(data: any) {
+        return this.request('/calculators/regime-optimizer', { method: 'POST', body: JSON.stringify(data) });
+    }
+
+    async calcAdvanceTax(data: any) {
+        return this.request('/calculators/advance-tax', { method: 'POST', body: JSON.stringify(data) });
+    }
+
+    async calcProfessionalTax(data: any) {
+        return this.request('/calculators/professional-tax', { method: 'POST', body: JSON.stringify(data) });
+    }
+
+    async calcStampDuty(data: any) {
+        return this.request('/calculators/stamp-duty', { method: 'POST', body: JSON.stringify(data) });
+    }
+
+    async calcCryptoTax(data: any) {
+        return this.request('/calculators/crypto-tax', { method: 'POST', body: JSON.stringify(data) });
+    }
+
     // GSTIN
     async verifyGSTIN(gstin: string) {
         return this.request(`/gstin/verify/${gstin}`);
@@ -332,11 +352,6 @@ class ApiClient {
 
     async deleteComplianceTask(id: string) {
         return this.request(`/compliance/tasks/${id}`, { method: 'DELETE' });
-    }
-
-    // Regime Optimizer
-    async calcRegimeOptimizer(data: any) {
-        return this.request('/calculators/regime-optimizer', { method: 'POST', body: JSON.stringify(data) });
     }
 
     // Client Portal

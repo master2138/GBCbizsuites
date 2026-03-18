@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { api } from '@/lib/api';
 
-const TABS = ['Income Tax', 'HRA', 'EMI', 'SIP', 'PPF', 'GST', 'TDS', 'Gratuity', 'NPS', 'Capital Gains', 'FD', 'RD', 'Depreciation', 'Regime Optimizer'];
+const TABS = ['Income Tax', 'HRA', 'EMI', 'SIP', 'PPF', 'GST', 'TDS', 'Gratuity', 'NPS', 'Capital Gains', 'FD', 'RD', 'Depreciation', 'Regime Optimizer', 'Advance Tax', 'Professional Tax', 'Stamp Duty', 'Crypto/VDA Tax'];
 
 export default function CalculatorsPage() {
     const [activeTab, setActiveTab] = useState(0);
@@ -12,7 +12,7 @@ export default function CalculatorsPage() {
     return (
         <div className="animate-fadeIn">
             <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 4 }}>Financial Calculators</h1>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>14 calculators for CA professionals — FY 2025-26 rates</p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>18 calculators for CA professionals — FY 2025-26 rates</p>
 
             <div style={{ display: 'flex', gap: 8, marginBottom: 32, flexWrap: 'wrap' }}>
                 {TABS.map((tab, i) => (
@@ -36,6 +36,10 @@ export default function CalculatorsPage() {
                     {activeTab === 11 && <RDForm onResult={setResult} loading={loading} setLoading={setLoading} />}
                     {activeTab === 12 && <DepreciationForm onResult={setResult} loading={loading} setLoading={setLoading} />}
                     {activeTab === 13 && <RegimeForm onResult={setResult} loading={loading} setLoading={setLoading} />}
+                    {activeTab === 14 && <AdvanceTaxForm onResult={setResult} loading={loading} setLoading={setLoading} />}
+                    {activeTab === 15 && <ProfessionalTaxForm onResult={setResult} loading={loading} setLoading={setLoading} />}
+                    {activeTab === 16 && <StampDutyForm onResult={setResult} loading={loading} setLoading={setLoading} />}
+                    {activeTab === 17 && <CryptoTaxForm onResult={setResult} loading={loading} setLoading={setLoading} />}
                 </div>
                 <div className="glass-card" style={{ padding: 24 }}>
                     <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>📊 Results</h3>
@@ -484,6 +488,107 @@ function RegimeForm({ onResult, loading, setLoading }: any) {
         <FieldRow label="Home Loan Int."><input className="form-input" type="number" value={f.home_loan_interest} onChange={e => set('home_loan_interest', +e.target.value)} /></FieldRow>
         <FieldRow label="NPS (80CCD)"><input className="form-input" type="number" value={f.nps_80ccd} onChange={e => set('nps_80ccd', +e.target.value)} /></FieldRow>
         <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Analyzing...' : '⚡ Compare Old vs New Regime'}</button>
+    </div>);
+}
+
+function AdvanceTaxForm({ onResult, loading, setLoading }: any) {
+    const [liability, setLiability] = useState('');
+    const [tds, setTds] = useState('0');
+    const calc = async () => {
+        setLoading(true);
+        try { const r = await api.calcAdvanceTax({ total_tax_liability: +liability, tds_deducted: +tds }); onResult(r); } catch (e: any) { alert(e.message); }
+        setLoading(false);
+    };
+    return (<div>
+        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>📅 Advance Tax Calculator</h3>
+        <FieldRow label="Total Tax Liability (₹)"><input className="input-field" type="number" value={liability} onChange={e => setLiability(e.target.value)} placeholder="500000" /></FieldRow>
+        <FieldRow label="TDS Already Deducted (₹)"><input className="input-field" type="number" value={tds} onChange={e => setTds(e.target.value)} placeholder="120000" /></FieldRow>
+        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : '📅 Calculate Quarterly Instalments'}</button>
+    </div>);
+}
+
+function ProfessionalTaxForm({ onResult, loading, setLoading }: any) {
+    const [salary, setSalary] = useState('');
+    const [state, setState] = useState('maharashtra');
+    const calc = async () => {
+        setLoading(true);
+        try { const r = await api.calcProfessionalTax({ monthly_salary: +salary, state }); onResult(r); } catch (e: any) { alert(e.message); }
+        setLoading(false);
+    };
+    return (<div>
+        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>🏢 Professional Tax Calculator</h3>
+        <FieldRow label="Monthly Salary (₹)"><input className="input-field" type="number" value={salary} onChange={e => setSalary(e.target.value)} placeholder="50000" /></FieldRow>
+        <FieldRow label="State">
+            <select className="input-field" value={state} onChange={e => setState(e.target.value)}>
+                <option value="maharashtra">Maharashtra</option>
+                <option value="karnataka">Karnataka</option>
+                <option value="west_bengal">West Bengal</option>
+                <option value="tamil_nadu">Tamil Nadu</option>
+                <option value="gujarat">Gujarat</option>
+            </select>
+        </FieldRow>
+        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : '🏢 Calculate Professional Tax'}</button>
+    </div>);
+}
+
+function StampDutyForm({ onResult, loading, setLoading }: any) {
+    const [value, setValue] = useState('');
+    const [state, setState] = useState('maharashtra');
+    const [type, setType] = useState('residential');
+    const [isFemale, setIsFemale] = useState(false);
+    const calc = async () => {
+        setLoading(true);
+        try { const r = await api.calcStampDuty({ property_value: +value, state, property_type: type, is_female: isFemale }); onResult(r); } catch (e: any) { alert(e.message); }
+        setLoading(false);
+    };
+    return (<div>
+        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>🏠 Stamp Duty Calculator</h3>
+        <FieldRow label="Property Value (₹)"><input className="input-field" type="number" value={value} onChange={e => setValue(e.target.value)} placeholder="5000000" /></FieldRow>
+        <FieldRow label="State">
+            <select className="input-field" value={state} onChange={e => setState(e.target.value)}>
+                <option value="maharashtra">Maharashtra</option>
+                <option value="karnataka">Karnataka</option>
+                <option value="delhi">Delhi</option>
+                <option value="tamil_nadu">Tamil Nadu</option>
+                <option value="uttar_pradesh">Uttar Pradesh</option>
+                <option value="gujarat">Gujarat</option>
+                <option value="rajasthan">Rajasthan</option>
+                <option value="west_bengal">West Bengal</option>
+                <option value="telangana">Telangana</option>
+                <option value="kerala">Kerala</option>
+            </select>
+        </FieldRow>
+        <FieldRow label="Property Type">
+            <select className="input-field" value={type} onChange={e => setType(e.target.value)}>
+                <option value="residential">Residential</option>
+                <option value="commercial">Commercial</option>
+            </select>
+        </FieldRow>
+        <FieldRow label="Female Buyer">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={isFemale} onChange={e => setIsFemale(e.target.checked)} />
+                Yes (get concession where applicable)
+            </label>
+        </FieldRow>
+        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : '🏠 Calculate Stamp Duty'}</button>
+    </div>);
+}
+
+function CryptoTaxForm({ onResult, loading, setLoading }: any) {
+    const [buy, setBuy] = useState('');
+    const [sell, setSell] = useState('');
+    const [qty, setQty] = useState('1');
+    const calc = async () => {
+        setLoading(true);
+        try { const r = await api.calcCryptoTax({ buy_price: +buy, sell_price: +sell, quantity: +qty }); onResult(r); } catch (e: any) { alert(e.message); }
+        setLoading(false);
+    };
+    return (<div>
+        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>🪙 Crypto / VDA Tax (Section 115BBH)</h3>
+        <FieldRow label="Buy Price per Unit (₹)"><input className="input-field" type="number" value={buy} onChange={e => setBuy(e.target.value)} placeholder="50000" /></FieldRow>
+        <FieldRow label="Sell Price per Unit (₹)"><input className="input-field" type="number" value={sell} onChange={e => setSell(e.target.value)} placeholder="80000" /></FieldRow>
+        <FieldRow label="Quantity"><input className="input-field" type="number" value={qty} onChange={e => setQty(e.target.value)} placeholder="2" /></FieldRow>
+        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : '🪙 Calculate Crypto Tax'}</button>
     </div>);
 }
 
