@@ -799,5 +799,167 @@ router.post('/regime-optimizer', (req, res) => {
     }
 });
 
+// ── Advance Tax Calculator (Quarterly) ───────────────
+router.post('/advance-tax', (req, res) => {
+    try {
+        const { total_tax_liability = 0, tds_deducted = 0 } = req.body;
+        const netLiability = Math.max(total_tax_liability - tds_deducted, 0);
+
+        // Quarterly instalments: 15%, 45%, 75%, 100%
+        const q1 = Math.round(netLiability * 0.15);
+        const q2 = Math.round(netLiability * 0.45) - q1;
+        const q3 = Math.round(netLiability * 0.75) - q1 - q2;
+        const q4 = netLiability - q1 - q2 - q3;
+
+        res.json({
+            totalTaxLiability: total_tax_liability,
+            tdsDeducted: tds_deducted,
+            netLiability,
+            instalments: [
+                { quarter: 'Q1 (Jun 15)', cumPercent: '15%', amount: q1 },
+                { quarter: 'Q2 (Sep 15)', cumPercent: '45%', amount: q2 },
+                { quarter: 'Q3 (Dec 15)', cumPercent: '75%', amount: q3 },
+                { quarter: 'Q4 (Mar 15)', cumPercent: '100%', amount: q4 },
+            ],
+            note: netLiability < 10000 ? 'No advance tax required (liability < ₹10,000)' : 'Advance tax applicable',
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Advance tax calculation failed.' });
+    }
+});
+
+// ── Professional Tax Calculator ──────────────────────
+router.post('/professional-tax', (req, res) => {
+    try {
+        const { monthly_salary = 0, state = 'maharashtra' } = req.body;
+
+        const rates = {
+            maharashtra: [
+                { min: 0, max: 7500, tax: 0 },
+                { min: 7501, max: 10000, tax: 175 },
+                { min: 10001, max: Infinity, tax: 200 }, // Feb: 300
+            ],
+            karnataka: [
+                { min: 0, max: 15000, tax: 0 },
+                { min: 15001, max: Infinity, tax: 200 },
+            ],
+            west_bengal: [
+                { min: 0, max: 10000, tax: 0 },
+                { min: 10001, max: 15000, tax: 110 },
+                { min: 15001, max: 25000, tax: 130 },
+                { min: 25001, max: 40000, tax: 150 },
+                { min: 40001, max: Infinity, tax: 200 },
+            ],
+            tamil_nadu: [
+                { min: 0, max: 21000, tax: 0 },
+                { min: 21001, max: 30000, tax: 135 },
+                { min: 30001, max: 45000, tax: 315 },
+                { min: 45001, max: 60000, tax: 690 },
+                { min: 60001, max: 75000, tax: 1025 },
+                { min: 75001, max: Infinity, tax: 1250 },
+            ],
+            gujarat: [
+                { min: 0, max: 5999, tax: 0 },
+                { min: 6000, max: 8999, tax: 80 },
+                { min: 9000, max: 11999, tax: 150 },
+                { min: 12000, max: Infinity, tax: 200 },
+            ],
+        };
+
+        const stateRates = rates[state] || rates['maharashtra'];
+        const slab = stateRates.find(s => monthly_salary >= s.min && monthly_salary <= s.max) || { tax: 200 };
+        const monthlyTax = slab.tax;
+        const annualTax = monthlyTax * 12;
+
+        res.json({
+            monthlySalary: monthly_salary,
+            state,
+            monthlyTax,
+            annualTax,
+            maxAllowed: 2500,
+            deductibleUnder: 'Section 16(iii)',
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Professional tax calculation failed.' });
+    }
+});
+
+// ── Stamp Duty Calculator ────────────────────────────
+router.post('/stamp-duty', (req, res) => {
+    try {
+        const { property_value = 0, state = 'maharashtra', property_type = 'residential', is_female = false } = req.body;
+
+        const rates = {
+            maharashtra: { residential: 5, commercial: 6, female_discount: 1 },
+            karnataka: { residential: 5, commercial: 5, female_discount: 0 },
+            delhi: { residential: 4, commercial: 6, female_discount: 2 },
+            tamil_nadu: { residential: 7, commercial: 7, female_discount: 0 },
+            uttar_pradesh: { residential: 5, commercial: 5, female_discount: 2 },
+            gujarat: { residential: 4.9, commercial: 4.9, female_discount: 0 },
+            rajasthan: { residential: 5, commercial: 5, female_discount: 1 },
+            west_bengal: { residential: 5, commercial: 6, female_discount: 2 },
+            telangana: { residential: 5, commercial: 5, female_discount: 0 },
+            kerala: { residential: 8, commercial: 8, female_discount: 0 },
+        };
+
+        const stateRate = rates[state] || rates['maharashtra'];
+        let dutyRate = stateRate[property_type] || stateRate['residential'];
+        if (is_female && stateRate.female_discount) dutyRate -= stateRate.female_discount;
+        dutyRate = Math.max(dutyRate, 0);
+
+        const registrationFee = Math.min(property_value * 0.01, 30000);
+        const stampDuty = Math.round(property_value * (dutyRate / 100));
+
+        res.json({
+            propertyValue: property_value,
+            state,
+            propertyType: property_type,
+            isFemale: is_female,
+            stampDutyRate: dutyRate,
+            stampDutyAmount: stampDuty,
+            registrationFee: Math.round(registrationFee),
+            totalCost: stampDuty + Math.round(registrationFee),
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Stamp duty calculation failed.' });
+    }
+});
+
+// ── Crypto / VDA Tax Calculator (Section 115BBH) ─────
+router.post('/crypto-tax', (req, res) => {
+    try {
+        const { buy_price = 0, sell_price = 0, quantity = 0 } = req.body;
+        const totalBuy = buy_price * quantity;
+        const totalSell = sell_price * quantity;
+        const profit = totalSell - totalBuy;
+
+        // 30% flat tax on gains, no deductions allowed (Section 115BBH)
+        const taxRate = 0.30;
+        const tax = profit > 0 ? Math.round(profit * taxRate) : 0;
+        const cess = Math.round(tax * 0.04);
+        const tds = Math.round(totalSell * 0.01); // 1% TDS on sale (Section 194S)
+
+        res.json({
+            buyPrice: buy_price,
+            sellPrice: sell_price,
+            quantity,
+            totalBuyCost: totalBuy,
+            totalSaleValue: totalSell,
+            profit: Math.max(profit, 0),
+            loss: profit < 0 ? Math.abs(profit) : 0,
+            taxRate: '30%',
+            tax,
+            cess,
+            totalTax: tax + cess,
+            tdsOnSale: tds,
+            netTaxPayable: Math.max(tax + cess - tds, 0),
+            note: profit <= 0 ? 'No tax on losses. Losses cannot be set off against other income.' : 'Flat 30% tax + 4% cess. No deductions allowed except cost of acquisition.',
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Crypto tax calculation failed.' });
+    }
+});
+
 module.exports = router;
+
 

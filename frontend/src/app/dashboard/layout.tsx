@@ -9,12 +9,14 @@ const NAV_ITEMS = [
     { path: '/dashboard/upload', label: 'Bank Statements', icon: '📄' },
     { path: '/dashboard/ecommerce', label: 'E-Commerce', icon: '🛒' },
     { path: '/dashboard/invoices', label: 'Invoices', icon: '🧾' },
+    { path: '/dashboard/gst-tools', label: 'GST Tools', icon: '🏛️' },
     { path: '/dashboard/compliance', label: 'Compliance', icon: '📅' },
     { path: '/dashboard/practice', label: 'Practice Mgmt', icon: '📋' },
     { path: '/dashboard/reports', label: 'Reports', icon: '📈' },
     { path: '/dashboard/clients', label: 'Clients', icon: '👥' },
     { path: '/dashboard/calculators', label: 'Calculators', icon: '🧮' },
     { path: '/dashboard/gstin', label: 'GSTIN Verifier', icon: '🔍' },
+    { path: '/dashboard/notifications', label: 'Notifications', icon: '🔔' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
