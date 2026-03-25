@@ -7,12 +7,19 @@ export const metadata: Metadata = {
   description: "All-in-one AI platform for CAs: Bank Statement Processing, Tally Export, GST Automation, Financial Calculators, and Client Management.",
 };
 
+const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className="antialiased">{children}</body>
-      </html>
-    </ClerkProvider>
+  const content = (
+    <html lang="en">
+      <body className="antialiased">{children}</body>
+    </html>
   );
+
+  // Only wrap with ClerkProvider if the key is available
+  if (clerkKey) {
+    return <ClerkProvider>{content}</ClerkProvider>;
+  }
+
+  return content;
 }
