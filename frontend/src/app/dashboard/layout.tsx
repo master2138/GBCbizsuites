@@ -16,6 +16,8 @@ const NAV_ITEMS = [
     { path: '/dashboard/mca-forms', label: 'MCA Forms', icon: '🏢' },
     { path: '/dashboard/gem-portal', label: 'GeM Portal', icon: '🏪' },
     { path: '/dashboard/rera-calculator', label: 'RERA Calculator', icon: '🏠' },
+    { path: '/dashboard/modules', label: 'CorpCA/CyberCA', icon: '🧩' },
+    { path: '/dashboard/ai-assistant', label: 'AI Assistant', icon: '🤖' },
     { path: '/dashboard/practice', label: 'Practice Mgmt', icon: '📋' },
     { path: '/dashboard/reports', label: 'Reports', icon: '📈' },
     { path: '/dashboard/clients', label: 'Clients', icon: '👥' },
