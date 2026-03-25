@@ -1,115 +1,186 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 const MCA_FORMS = [
-    // Annual Compliance
-    { form: 'AOC-4', title: 'Financial Statements Filing', category: 'Annual', deadline: '30 Oct', desc: 'File balance sheet, P&L, cash flow with ROC. Due within 30 days of AGM.', fee: '₹200-600' },
-    { form: 'MGT-7/7A', title: 'Annual Return', category: 'Annual', deadline: '28 Nov', desc: 'Annual return with details of shareholders, directors, charges. Within 60 days of AGM.', fee: '₹200-600' },
-    { form: 'ADT-1', title: 'Auditor Appointment', category: 'Annual', deadline: '15 Oct', desc: 'Inform ROC about appointment of auditor within 15 days of AGM.', fee: '₹200' },
-    { form: 'MSC-1', title: 'Application as Dormant Company', category: 'Annual', deadline: 'As needed', desc: 'Apply for Dormant/Active status under Section 455.', fee: '₹5,000' },
-    { form: 'MSME-1', title: 'MSME Half-Yearly Return', category: 'Half-Yearly', deadline: '31 Oct / 30 Apr', desc: 'Report outstanding payments to MSME suppliers exceeding 45 days.', fee: 'NIL' },
-    // Director KYC
-    { form: 'DIR-3 KYC', title: 'Director KYC', category: 'KYC', deadline: '30 Sep', desc: 'Annual KYC for all DIN holders. ₹5000 late fee if missed.', fee: 'NIL (₹5000 late)' },
-    // Company Incorporation
-    { form: 'SPICe+', title: 'Company Incorporation', category: 'Incorporation', deadline: 'Anytime', desc: 'Single form for name reservation, incorporation, DIN, PAN, TAN, GSTIN, EPFO, ESIC.', fee: '₹500-5000' },
-    { form: 'RUN', title: 'Reserve Unique Name', category: 'Incorporation', deadline: 'Anytime', desc: 'Reserve a company name before filing SPICe+. Valid for 20 days.', fee: '₹1,000' },
-    { form: 'INC-20A', title: 'Commencement Declaration', category: 'Incorporation', deadline: '180 days', desc: 'Declaration for commencement of business within 180 days of incorporation.', fee: '₹200' },
-    { form: 'AGILE-PRO-S', title: 'GST + EPFO + ESIC + Shop Act', category: 'Incorporation', deadline: 'With SPICe+', desc: 'Linked form for GSTIN, EPFO, ESIC, Shops & Establishment registration.', fee: 'NIL' },
-    // Changes & Modifications
-    { form: 'DIR-12', title: 'Director Appointment/Resignation', category: 'Changes', deadline: '30 days', desc: 'Intimate ROC about appointment, resignation, change of directors.', fee: '₹200' },
-    { form: 'SH-7', title: 'Change in Authorized Capital', category: 'Changes', deadline: '30 days', desc: 'File notice of increase in authorized share capital.', fee: 'Based on capital' },
-    { form: 'PAS-3', title: 'Return of Allotment', category: 'Changes', deadline: '15 days', desc: 'File return of allotment after issuing shares. Within 15 days.', fee: '₹200-500' },
-    { form: 'CHG-1/CHG-9', title: 'Charge Registration/Modification', category: 'Charges', deadline: '30 days', desc: 'Register or modify charge on company assets with ROC.', fee: 'Based on amount' },
-    { form: 'MGT-14', title: 'Filing of Resolutions', category: 'Changes', deadline: '30 days', desc: 'File special/board resolutions with ROC within 30 days of passing.', fee: '₹200' },
-    { form: 'INC-22', title: 'Registered Office Change', category: 'Changes', deadline: '15 days', desc: 'Intimate ROC about change of registered office address.', fee: '₹200' },
-    { form: 'INC-28', title: 'NCLT Order Filing', category: 'Changes', deadline: '30 days', desc: 'File NCLT/CLB orders (merger, amalgamation, compromise).', fee: '₹200' },
+    // Company Registration & Incorporation
+    { form: 'INC-2', name: 'Application for Incorporation (OPC)', cat: 'Incorporation', due: 'At incorporation' },
+    { form: 'INC-7', name: 'Application for Incorporation of Company', cat: 'Incorporation', due: 'At incorporation' },
+    { form: 'INC-9', name: 'Declaration by Subscribers & Directors', cat: 'Incorporation', due: 'At incorporation' },
+    { form: 'INC-20A', name: 'Declaration for Commencement of Business', cat: 'Incorporation', due: '180 days from incorporation' },
+    { form: 'INC-22', name: 'Notice of Registered Office', cat: 'Incorporation', due: '30 days from incorporation' },
+    { form: 'INC-33', name: 'Particulars of e-Stamp Certificate', cat: 'Incorporation', due: 'At incorporation' },
+    { form: 'SPICe+ Part A', name: 'Name Reservation', cat: 'Incorporation', due: 'Valid 20 days' },
+    { form: 'SPICe+ Part B', name: 'Incorporation + PAN/TAN/GST/EPFO/ESIC', cat: 'Incorporation', due: 'At incorporation' },
+    { form: 'AGILE-PRO-S', name: 'Application for GSTIN/EPFO/ESIC/Bank A/c', cat: 'Incorporation', due: 'At incorporation' },
+    // Annual Filing
+    { form: 'AOC-4', name: 'Filing of Financial Statements', cat: 'Annual Filing', due: '30 days from AGM' },
+    { form: 'AOC-4 CFS', name: 'Filing of Consolidated Financial Statements', cat: 'Annual Filing', due: '30 days from AGM' },
+    { form: 'AOC-4 XBRL', name: 'Filing of Financial Statements (XBRL)', cat: 'Annual Filing', due: '30 days from AGM' },
+    { form: 'MGT-7', name: 'Annual Return (Companies)', cat: 'Annual Filing', due: '60 days from AGM' },
+    { form: 'MGT-7A', name: 'Annual Return (OPC/Small Company)', cat: 'Annual Filing', due: '60 days from AGM' },
+    { form: 'ADT-1', name: 'Appointment of Auditor', cat: 'Annual Filing', due: '15 days from AGM' },
+    { form: 'MSC-1', name: 'Application for Active Company Status', cat: 'Annual Filing', due: 'As applicable' },
+    { form: 'MSC-3', name: 'Objection to Strike Off Notice', cat: 'Annual Filing', due: '30 days of notice' },
+    // Director & KMP
+    { form: 'DIR-3 KYC', name: 'Director KYC (Annual)', cat: 'Director/KMP', due: '30 Sep every year' },
+    { form: 'DIR-3 KYC Web', name: 'Director KYC (Web-based)', cat: 'Director/KMP', due: '30 Sep every year' },
+    { form: 'DIR-6', name: 'Intimation of Change in Director Details', cat: 'Director/KMP', due: '30 days of change' },
+    { form: 'DIR-11', name: 'Notice of Resignation of Director', cat: 'Director/KMP', due: '30 days of resignation' },
+    { form: 'DIR-12', name: 'Appointment/Cessation of Director/KMP', cat: 'Director/KMP', due: '30 days of change' },
+    { form: 'MBP-1', name: 'Disclosure of Interest by Director', cat: 'Director/KMP', due: 'At first board meeting' },
+    { form: 'MGT-14', name: 'Filing of Resolutions/Agreements', cat: 'Director/KMP', due: '30 days from passing' },
+    // Charge Related
+    { form: 'CHG-1', name: 'Creation/Modification of Charge', cat: 'Charge', due: '30 days of creation' },
+    { form: 'CHG-4', name: 'Satisfaction of Charge', cat: 'Charge', due: '30 days of satisfaction' },
+    { form: 'CHG-9', name: 'Application for Registration of Charge', cat: 'Charge', due: '300 days' },
+    // Share Capital & Allotment
+    { form: 'PAS-3', name: 'Return of Allotment', cat: 'Share Capital', due: '30 days of allotment' },
+    { form: 'SH-7', name: 'Notice of Alteration of Share Capital', cat: 'Share Capital', due: '30 days of alteration' },
+    { form: 'SH-8', name: 'Letter of Offer for Buy Back', cat: 'Share Capital', due: 'As applicable' },
+    { form: 'SH-11', name: 'Return re: Buy Back of Securities', cat: 'Share Capital', due: '30 days of completion' },
+    { form: 'MGT-6', name: 'Filing of Return of Deposit', cat: 'Share Capital', due: '30 Jun every year' },
+    // Change & Conversion
+    { form: 'INC-23', name: 'Application for License u/s 8', cat: 'Change/Conversion', due: 'At application' },
+    { form: 'INC-24', name: 'Application for Conversion (Sec 18)', cat: 'Change/Conversion', due: 'At conversion' },
+    { form: 'INC-27', name: 'Conversion of Section 8 Company', cat: 'Change/Conversion', due: '30 days' },
+    { form: 'INC-28', name: 'Notice of Order of Court/CLB/RD', cat: 'Change/Conversion', due: '30 days of order' },
+    { form: 'MGT-15', name: 'Report on Annual General Meeting', cat: 'Change/Conversion', due: '30 days from AGM' },
     // LLP Forms
-    { form: 'FiLLiP', title: 'LLP Incorporation', category: 'LLP', deadline: 'Anytime', desc: 'Form for incorporation of LLP with MCA.', fee: '₹500-5000' },
-    { form: 'LLP-11', title: 'LLP Annual Return', category: 'LLP', deadline: '30 May', desc: 'Annual return for LLP within 60 days of FY close.', fee: '₹50-200' },
-    { form: 'LLP-8', title: 'LLP Statement of Accounts', category: 'LLP', deadline: '30 Oct', desc: 'Statement of accounts and solvency within 30 days of 6 months from FY end.', fee: '₹50-200' },
-    { form: 'LLP-3', title: 'LLP Partner Change', category: 'LLP', deadline: '30 days', desc: 'Inform ROC about change in partners or designated partners.', fee: '₹50' },
-    // Winding Up
-    { form: 'STK-2', title: 'Strike Off Application', category: 'Closure', deadline: 'Anytime', desc: 'Application for removal of company name from ROC register.', fee: '₹5,000-10,000' },
-    { form: 'WIN-1', title: 'Winding Up Statement', category: 'Closure', deadline: 'As per NCLT', desc: 'Statement of affairs in winding up proceedings.', fee: 'As applicable' },
-    // CSR & Others
-    { form: 'CSR-2', title: 'CSR Reporting', category: 'CSR', deadline: '31 Mar', desc: 'Annual CSR report for companies with CSR obligation (Net Worth >₹500Cr / Turnover >₹1000Cr / Profit >₹5Cr).', fee: 'NIL' },
-    { form: 'BEN-2', title: 'Beneficial Ownership', category: 'Compliance', deadline: '30 days', desc: 'Return of significant beneficial owner in shares. File within 30 days.', fee: '₹200' },
-    { form: 'DPT-3', title: 'Return of Deposits', category: 'Annual', deadline: '30 Jun', desc: 'Annual return of deposits/transactions NOT considered deposits.', fee: '₹200' },
-    { form: 'GNL-3', title: 'Particulars of Legal Suits', category: 'Compliance', deadline: 'As needed', desc: 'Report pending legal cases/suits under Section 455.', fee: '₹200' },
+    { form: 'FiLLiP', name: 'Application for Incorporation of LLP', cat: 'LLP', due: 'At incorporation' },
+    { form: 'Form 3', name: 'Information about LLP Agreement', cat: 'LLP', due: '30 days of incorporation' },
+    { form: 'Form 4', name: 'Notice of Appointment of Designated Partner', cat: 'LLP', due: '30 days of change' },
+    { form: 'Form 8', name: 'Statement of Account & Solvency (LLP)', cat: 'LLP', due: '30 Oct every year' },
+    { form: 'Form 11', name: 'Annual Return of LLP', cat: 'LLP', due: '30 May every year' },
+    // Winding Up & Strike Off
+    { form: 'STK-2', name: 'Application for Strike Off (Company)', cat: 'Winding Up', due: 'As applicable' },
+    { form: 'STK-5A', name: 'Application for Strike Off (LLP)', cat: 'Winding Up', due: 'As applicable' },
+    { form: 'GNL-2', name: 'Designated Authority Form under MCA', cat: 'Winding Up', due: 'As applicable' },
+    // DPT & Compliance
+    { form: 'DPT-3', name: 'Return of Deposits', cat: 'Compliance', due: '30 Jun every year' },
+    { form: 'MSME-1', name: 'Return to MSME Half-Yearly', cat: 'Compliance', due: '31 Oct & 30 Apr' },
+    { form: 'BEN-2', name: 'Declaration of Significant Beneficial Owner', cat: 'Compliance', due: '30 days of declaration' },
+    { form: 'NDH-1', name: 'Return of Statutory Particulars (Nidhi)', cat: 'Compliance', due: '30 days from year end' },
+    { form: 'NDH-3', name: 'Half-Yearly Return (Nidhi Company)', cat: 'Compliance', due: '31 Oct & 30 Apr' },
+    { form: 'CRA-4', name: 'Cost Audit Report', cat: 'Compliance', due: '30 days from receipt' },
+    { form: 'CSR-2', name: 'Report on CSR Activities', cat: 'Compliance', due: 'With AOC-4' },
+    { form: 'GNL-1', name: 'Particulars of Person Charged', cat: 'Compliance', due: '15 days' },
+    { form: 'RD GNL-5', name: 'Application to Regional Director', cat: 'Compliance', due: 'As applicable' },
 ];
 
-const CATEGORIES = ['All', 'Annual', 'Half-Yearly', 'KYC', 'Incorporation', 'Changes', 'Charges', 'LLP', 'Closure', 'CSR', 'Compliance'];
+const CATEGORIES = [...new Set(MCA_FORMS.map(f => f.cat))];
 
 export default function MCAFormsPage() {
     const [search, setSearch] = useState('');
-    const [cat, setCat] = useState('All');
-    const router = useRouter();
+    const [activeCat, setActiveCat] = useState('All');
 
     const filtered = MCA_FORMS.filter(f => {
-        const matchSearch = !search || f.form.toLowerCase().includes(search.toLowerCase()) || f.title.toLowerCase().includes(search.toLowerCase()) || f.desc.toLowerCase().includes(search.toLowerCase());
-        const matchCat = cat === 'All' || f.category === cat;
+        const matchSearch = !search || f.form.toLowerCase().includes(search.toLowerCase()) || f.name.toLowerCase().includes(search.toLowerCase());
+        const matchCat = activeCat === 'All' || f.cat === activeCat;
         return matchSearch && matchCat;
     });
 
+    const getMCAUrl = (form: string) => `https://www.mca.gov.in/content/mca/global/en/e-filing.html`;
+
     const catColors: Record<string, string> = {
-        Annual: '#C9A84C', 'Half-Yearly': '#f59e0b', KYC: '#ef4444', Incorporation: '#22c55e',
-        Changes: '#6366f1', Charges: '#8b5cf6', LLP: '#14b8a6', Closure: '#ef4444', CSR: '#3b82f6', Compliance: '#ec4899',
+        'Incorporation': '#6366f1', 'Annual Filing': '#22c55e', 'Director/KMP': '#f59e0b',
+        'Charge': '#ef4444', 'Share Capital': '#8b5cf6', 'Change/Conversion': '#14b8a6',
+        'LLP': '#ec4899', 'Winding Up': '#f97316', 'Compliance': '#3b82f6',
     };
 
     return (
         <div className="animate-fadeIn">
             <div style={{ marginBottom: 28 }}>
-                <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 4 }}>🏢 MCA Filing Forms (CorpCA)</h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>{MCA_FORMS.length} MCA forms with deadlines, fees, and descriptions</p>
+                <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 4 }}>🏛️ MCA Forms V3</h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>All MCA e-Forms for Company & LLP compliance — searchable with filing deadlines</p>
             </div>
 
-            {/* Search + Filters */}
-            <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+            {/* Search & Filter */}
+            <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
                 <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                    placeholder="Search by form number, title, or keyword..."
-                    style={{ flex: 1, minWidth: 300, padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }} />
-            </div>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
-                {CATEGORIES.map(c => (
-                    <button key={c} onClick={() => setCat(c)} style={{
-                        padding: '6px 14px', borderRadius: 8, border: '1px solid',
-                        borderColor: cat === c ? 'rgba(201,168,76,0.4)' : 'var(--border-color)',
-                        background: cat === c ? 'rgba(201,168,76,0.1)' : 'transparent',
-                        color: cat === c ? '#C9A84C' : 'var(--text-secondary)',
-                        cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                    }}>
-                        {c} {c === 'All' ? `(${MCA_FORMS.length})` : `(${MCA_FORMS.filter(f => f.category === c).length})`}
-                    </button>
-                ))}
+                    placeholder="Search by form number or name..."
+                    style={{ flex: 1, padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }} />
+                <a href="https://www.mca.gov.in/content/mca/global/en/e-filing.html" target="_blank" rel="noreferrer"
+                    style={{ padding: '12px 20px', borderRadius: 10, background: 'linear-gradient(135deg, #C9A84C, #E8CC7D)', color: '#0f172a', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    🌐 MCA Portal
+                </a>
             </div>
 
-            {/* Forms Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 12 }}>
-                {filtered.map(f => (
-                    <div key={f.form} className="glass-card" style={{ padding: '18px 20px', borderLeft: `3px solid ${catColors[f.category] || '#6366f1'}` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                            <div>
-                                <span style={{ fontSize: 16, fontWeight: 800, color: catColors[f.category] || '#C9A84C', fontFamily: 'monospace' }}>{f.form}</span>
-                                <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>{f.title}</div>
-                            </div>
-                            <span style={{ padding: '3px 8px', borderRadius: 6, background: (catColors[f.category] || '#6366f1') + '15', color: catColors[f.category] || '#6366f1', fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>{f.category}</span>
-                        </div>
-                        <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 10 }}>{f.desc}</p>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>📅 Deadline: <strong style={{ color: '#f59e0b' }}>{f.deadline}</strong></span>
-                            <span style={{ color: 'var(--text-secondary)' }}>💰 Fee: <strong>{f.fee}</strong></span>
-                        </div>
+            {/* Category Tabs */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
+                <button onClick={() => setActiveCat('All')} style={{
+                    padding: '6px 14px', borderRadius: 8, border: '1px solid', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    borderColor: activeCat === 'All' ? 'rgba(201,168,76,0.4)' : 'var(--border-color)',
+                    background: activeCat === 'All' ? 'rgba(201,168,76,0.1)' : 'var(--bg-secondary)',
+                    color: activeCat === 'All' ? '#C9A84C' : 'var(--text-secondary)',
+                }}>All ({MCA_FORMS.length})</button>
+                {CATEGORIES.map(cat => {
+                    const count = MCA_FORMS.filter(f => f.cat === cat).length;
+                    return (
+                        <button key={cat} onClick={() => setActiveCat(cat)} style={{
+                            padding: '6px 14px', borderRadius: 8, border: '1px solid', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                            borderColor: activeCat === cat ? (catColors[cat] || '#C9A84C') + '60' : 'var(--border-color)',
+                            background: activeCat === cat ? (catColors[cat] || '#C9A84C') + '15' : 'var(--bg-secondary)',
+                            color: activeCat === cat ? (catColors[cat] || '#C9A84C') : 'var(--text-secondary)',
+                        }}>{cat} ({count})</button>
+                    );
+                })}
+            </div>
+
+            {/* Results Count */}
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                Showing {filtered.length} of {MCA_FORMS.length} forms {search && `matching "${search}"`}
+            </div>
+
+            {/* Forms Table */}
+            <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                        <tr>
+                            {['Form No.', 'Form Name', 'Category', 'Due Date / Deadline', 'Action'].map(h => (
+                                <th key={h} style={{ textAlign: 'left', padding: '12px 14px', borderBottom: '1px solid var(--border-color)', fontSize: 11, fontWeight: 700, color: '#C9A84C', letterSpacing: 0.8, textTransform: 'uppercase' as const, background: 'rgba(201,168,76,0.05)' }}>{h}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filtered.map((f, i) => (
+                            <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 700, fontFamily: 'monospace', color: catColors[f.cat] || '#C9A84C' }}>{f.form}</td>
+                                <td style={{ padding: '10px 14px', fontSize: 13 }}>{f.name}</td>
+                                <td style={{ padding: '10px 14px' }}>
+                                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: (catColors[f.cat] || '#C9A84C') + '15', color: catColors[f.cat] || '#C9A84C', fontWeight: 600 }}>{f.cat}</span>
+                                </td>
+                                <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-secondary)' }}>{f.due}</td>
+                                <td style={{ padding: '10px 14px' }}>
+                                    <a href={getMCAUrl(f.form)} target="_blank" rel="noreferrer"
+                                        style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(99,102,241,0.15)', color: '#6366f1', fontWeight: 600, textDecoration: 'none' }}>
+                                        📥 File on MCA
+                                    </a>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Important Deadlines */}
+            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+                {[
+                    { title: '📅 Key Annual Deadlines', color: '#22c55e', items: ['DIR-3 KYC — 30 Sep', 'ADT-1 — 15 days from AGM', 'AOC-4 — 30 days from AGM', 'MGT-7 — 60 days from AGM', 'DPT-3 — 30 Jun', 'MSME-1 — 31 Oct & 30 Apr'] },
+                    { title: '⚠️ Penalty for Late Filing', color: '#ef4444', items: ['AOC-4/MGT-7: ₹100/day per form', 'DIR-3 KYC: ₹5,000 one-time', 'INC-20A missed: ₹50,000 penalty', 'CHG-1 late: Additional fees apply', 'Strike off if 2+ years default'] },
+                    { title: '💡 Pro Tips for CAs', color: '#f59e0b', items: ['File AOC-4 before MGT-7 (sequence matters)', 'DIR-3 KYC Web for existing DIN holders', 'Use SPICe+ for new incorporations', 'BEN-2 mandatory for significant beneficial owners', 'CSR-2 filed as AOC-4 attachment'] },
+                ].map((card, i) => (
+                    <div key={i} className="glass-card" style={{ padding: 18, borderTop: `3px solid ${card.color}` }}>
+                        <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: card.color }}>{card.title}</h3>
+                        <ul style={{ listStyle: 'none', padding: 0 }}>
+                            {card.items.map((item, j) => (
+                                <li key={j} style={{ fontSize: 12, padding: '4px 0', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(255,255,255,0.03)', display: 'flex', gap: 6 }}>
+                                    <span style={{ color: card.color }}>→</span> {item}
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 ))}
             </div>
-
-            {filtered.length === 0 && (
-                <div className="glass-card" style={{ padding: 40, textAlign: 'center' }}>
-                    <div style={{ fontSize: 36, marginBottom: 8 }}>🔍</div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>No forms found matching &quot;{search}&quot;</div>
-                </div>
-            )}
         </div>
     );
 }

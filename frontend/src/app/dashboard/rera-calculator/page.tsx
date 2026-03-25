@@ -1,295 +1,188 @@
 'use client';
 import { useState } from 'react';
 
-// State-wise circle rates (per sq ft) — approximate averages
-const STATE_RATES: Record<string, { residential: number; commercial: number; industrial: number }> = {
-    maharashtra: { residential: 5500, commercial: 8200, industrial: 4200 },
-    delhi: { residential: 8000, commercial: 12000, industrial: 6500 },
-    karnataka: { residential: 4200, commercial: 6800, industrial: 3500 },
-    tamil_nadu: { residential: 3800, commercial: 5500, industrial: 3000 },
-    gujarat: { residential: 3200, commercial: 5000, industrial: 2800 },
-    uttar_pradesh: { residential: 2800, commercial: 4500, industrial: 2200 },
-    rajasthan: { residential: 2500, commercial: 4000, industrial: 2000 },
-    west_bengal: { residential: 3500, commercial: 5200, industrial: 2800 },
-    telangana: { residential: 4500, commercial: 7000, industrial: 3600 },
-    kerala: { residential: 3800, commercial: 5800, industrial: 3100 },
-    madhya_pradesh: { residential: 2200, commercial: 3500, industrial: 1800 },
-    punjab: { residential: 3000, commercial: 4800, industrial: 2500 },
-    haryana: { residential: 4000, commercial: 6500, industrial: 3200 },
-    andhra_pradesh: { residential: 3200, commercial: 5000, industrial: 2600 },
-    goa: { residential: 5000, commercial: 7500, industrial: 4000 },
-};
-
-// Construction cost components (per sq ft)
-const CONSTRUCTION_COSTS = {
-    basic: { min: 1200, max: 1800, label: 'Basic (Economy)' },
-    standard: { min: 1800, max: 2800, label: 'Standard (Mid-Range)' },
-    premium: { min: 2800, max: 4500, label: 'Premium (High-End)' },
-    luxury: { min: 4500, max: 8000, label: 'Luxury (Ultra-Premium)' },
-};
-
-const COST_BREAKDOWN = [
-    { item: 'Structural Work (RCC, Steel)', pct: 30 },
-    { item: 'Brickwork & Plastering', pct: 12 },
-    { item: 'Flooring & Tiling', pct: 10 },
-    { item: 'Plumbing & Sanitary', pct: 8 },
-    { item: 'Electrical Work', pct: 8 },
-    { item: 'Doors & Windows', pct: 7 },
-    { item: 'Painting & Finishing', pct: 6 },
-    { item: 'Kitchen & Fittings', pct: 5 },
-    { item: 'Foundation & Excavation', pct: 5 },
-    { item: 'Architect & Legal Fees', pct: 4 },
-    { item: 'Misc (Lift, Parking, Landscaping)', pct: 5 },
+const STATES_RERA = [
+    { state: 'Maharashtra', portal: 'https://maharera.mahaonline.gov.in', stampDuty: 5, regFee: 1, femaleDiscount: 1 },
+    { state: 'Karnataka', portal: 'https://rera.karnataka.gov.in', stampDuty: 5, regFee: 1, femaleDiscount: 0 },
+    { state: 'Delhi', portal: 'https://rera.delhi.gov.in', stampDuty: 6, regFee: 1, femaleDiscount: 2 },
+    { state: 'Tamil Nadu', portal: 'https://www.tnrera.in', stampDuty: 7, regFee: 1, femaleDiscount: 0 },
+    { state: 'Gujarat', portal: 'https://gujrera.gujarat.gov.in', stampDuty: 4.9, regFee: 1, femaleDiscount: 0 },
+    { state: 'Uttar Pradesh', portal: 'https://www.up-rera.in', stampDuty: 7, regFee: 1, femaleDiscount: 2 },
+    { state: 'Rajasthan', portal: 'https://rera.rajasthan.gov.in', stampDuty: 5, regFee: 1, femaleDiscount: 1 },
+    { state: 'West Bengal', portal: 'https://wbhira.gov.in', stampDuty: 6, regFee: 1, femaleDiscount: 0 },
+    { state: 'Telangana', portal: 'https://rera.telangana.gov.in', stampDuty: 5, regFee: 0.5, femaleDiscount: 0 },
+    { state: 'Kerala', portal: 'https://rera.kerala.gov.in', stampDuty: 8, regFee: 2, femaleDiscount: 0 },
 ];
 
 export default function RERACalculatorPage() {
-    const [form, setForm] = useState({
-        state: 'maharashtra',
-        propertyType: 'residential',
-        quality: 'standard',
-        area: '',
-        floors: '1',
-        landArea: '',
-        includeInterior: true,
-        includeParking: true,
-        includeLandscaping: false,
-    });
-    const [result, setResult] = useState<any>(null);
+    const [tab, setTab] = useState('cost');
+    const [propertyValue, setPropertyValue] = useState('');
+    const [state, setState] = useState('Maharashtra');
+    const [isFemale, setIsFemale] = useState(false);
+    const [builtUp, setBuiltUp] = useState('');
+    const [convFactor, setConvFactor] = useState('0.75');
+    const [loanAmt, setLoanAmt] = useState('');
+    const [loanRate, setLoanRate] = useState('8.5');
+    const [loanTenure, setLoanTenure] = useState('20');
 
-    const set = (key: string, value: any) => setForm(p => ({ ...p, [key]: value }));
+    const pv = Number(propertyValue) || 0;
+    const stateData = STATES_RERA.find(s => s.state === state) || STATES_RERA[0];
+    const sdRate = stateData.stampDuty - (isFemale ? stateData.femaleDiscount : 0);
+    const stampDuty = Math.round(pv * sdRate / 100);
+    const regFee = Math.round(pv * stateData.regFee / 100);
+    const gstOnProp = pv <= 4500000 ? Math.round(pv * 1 / 100) : Math.round(pv * 5 / 100);
+    const legalFee = Math.round(pv * 0.5 / 100);
+    const totalCost = pv + stampDuty + regFee + gstOnProp + legalFee;
 
-    const calculate = () => {
-        const area = Number(form.area) || 0;
-        const floors = Number(form.floors) || 1;
-        const landArea = Number(form.landArea) || 0;
-        if (!area) return;
+    const carpet = Math.round(Number(builtUp) * Number(convFactor));
 
-        const quality = CONSTRUCTION_COSTS[form.quality as keyof typeof CONSTRUCTION_COSTS];
-        const costPerSqFt = (quality.min + quality.max) / 2;
-        const totalBuildArea = area * floors;
+    const la = Number(loanAmt) || 0;
+    const mr = Number(loanRate) / 100 / 12;
+    const mn = Number(loanTenure) * 12;
+    const emi = la > 0 && mr > 0 ? Math.round(la * mr * Math.pow(1 + mr, mn) / (Math.pow(1 + mr, mn) - 1)) : 0;
+    const totalPay = emi * mn;
+    const totalInt = totalPay - la;
 
-        const stateRate = STATE_RATES[form.state] || STATE_RATES.maharashtra;
-        const landRate = stateRate[form.propertyType as keyof typeof stateRate];
-
-        const constructionCost = totalBuildArea * costPerSqFt;
-        const landCost = landArea > 0 ? landArea * landRate : 0;
-        const interiorCost = form.includeInterior ? totalBuildArea * 450 : 0;
-        const parkingCost = form.includeParking ? floors * 200000 : 0;
-        const landscapingCost = form.includeLandscaping ? landArea * 150 : 0;
-
-        // Statutory costs
-        const stampDuty = (constructionCost + landCost) * 0.05;
-        const registrationFee = (constructionCost + landCost) * 0.01;
-        const gst = constructionCost * 0.05; // 5% for under-construction
-        const reraRegistration = constructionCost > 5000000 ? 50000 : 25000;
-        const architectFee = constructionCost * 0.04;
-        const legalFee = constructionCost * 0.02;
-
-        const totalProjectCost = constructionCost + landCost + interiorCost + parkingCost + landscapingCost;
-        const totalStatutory = stampDuty + registrationFee + gst + reraRegistration + architectFee + legalFee;
-        const grandTotal = totalProjectCost + totalStatutory;
-
-        setResult({
-            costPerSqFt,
-            totalBuildArea,
-            constructionCost,
-            landCost,
-            interiorCost,
-            parkingCost,
-            landscapingCost,
-            stampDuty,
-            registrationFee,
-            gst,
-            reraRegistration,
-            architectFee,
-            legalFee,
-            totalProjectCost,
-            totalStatutory,
-            grandTotal,
-            breakdown: COST_BREAKDOWN.map(b => ({
-                item: b.item,
-                pct: b.pct,
-                amount: Math.round(constructionCost * b.pct / 100),
-            })),
-        });
-    };
-
-    const fmt = (n: number) => {
-        if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
-        if (n >= 100000) return `₹${(n / 100000).toFixed(2)} L`;
-        return `₹${n.toLocaleString('en-IN')}`;
-    };
+    const tabs = [
+        { id: 'cost', label: 'Cost Breakup', icon: '💰' },
+        { id: 'carpet', label: 'Carpet Area', icon: '📐' },
+        { id: 'emi', label: 'EMI Calculator', icon: '🏦' },
+        { id: 'portals', label: 'State RERA Portals', icon: '🌐' },
+    ];
 
     return (
         <div className="animate-fadeIn">
             <div style={{ marginBottom: 28 }}>
-                <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 4 }}>🏗️ RERA Construction Cost Calculator</h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Estimate construction costs with state-wise rates, RERA fees, GST, and stamp duty</p>
+                <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 4 }}>🏠 RERA Calculator</h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Property cost breakup, carpet area converter, EMI calculator & state RERA portals</p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+                {tabs.map(t => (
+                    <button key={t.id} onClick={() => setTab(t.id)} style={{
+                        padding: '10px 20px', borderRadius: 10, border: '1px solid', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        borderColor: tab === t.id ? 'rgba(201,168,76,0.4)' : 'var(--border-color)',
+                        background: tab === t.id ? 'rgba(201,168,76,0.1)' : 'var(--bg-secondary)',
+                        color: tab === t.id ? '#C9A84C' : 'var(--text-secondary)',
+                    }}>{t.icon} {t.label}</button>
+                ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                {/* Input Form */}
-                <div className="glass-card" style={{ padding: 24 }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>📐 Project Details</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <div>
-                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>State</label>
-                            <select value={form.state} onChange={e => set('state', e.target.value)}
-                                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14 }}>
-                                {Object.entries(STATE_RATES).map(([k]) => (
-                                    <option key={k} value={k}>{k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Property Type</label>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                                {['residential', 'commercial', 'industrial'].map(t => (
-                                    <button key={t} onClick={() => set('propertyType', t)} style={{
-                                        flex: 1, padding: '8px', borderRadius: 8, border: '1px solid',
-                                        borderColor: form.propertyType === t ? 'rgba(201,168,76,0.4)' : 'var(--border-color)',
-                                        background: form.propertyType === t ? 'rgba(201,168,76,0.1)' : 'transparent',
-                                        color: form.propertyType === t ? '#C9A84C' : 'var(--text-secondary)',
-                                        cursor: 'pointer', fontSize: 12, fontWeight: 600, textTransform: 'capitalize',
-                                    }}>{t === 'residential' ? '🏠' : t === 'commercial' ? '🏢' : '🏭'} {t}</button>
-                                ))}
-                            </div>
-                        </div>
-                        <div>
-                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Construction Quality</label>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                {Object.entries(CONSTRUCTION_COSTS).map(([k, v]) => (
-                                    <button key={k} onClick={() => set('quality', k)} style={{
-                                        padding: '8px 10px', borderRadius: 8, border: '1px solid',
-                                        borderColor: form.quality === k ? 'rgba(201,168,76,0.4)' : 'var(--border-color)',
-                                        background: form.quality === k ? 'rgba(201,168,76,0.1)' : 'transparent',
-                                        color: form.quality === k ? '#C9A84C' : 'var(--text-secondary)',
-                                        cursor: 'pointer', fontSize: 11, fontWeight: 600, textAlign: 'left',
-                                    }}>
-                                        <div>{v.label}</div>
-                                        <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>₹{v.min}–₹{v.max}/sqft</div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                            <div>
-                                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Built-up Area (sq ft)</label>
-                                <input type="number" value={form.area} onChange={e => set('area', e.target.value)} placeholder="2000"
-                                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14 }} />
-                            </div>
-                            <div>
-                                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Number of Floors</label>
-                                <input type="number" value={form.floors} onChange={e => set('floors', e.target.value)} placeholder="2"
-                                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14 }} />
-                            </div>
-                        </div>
-                        <div>
-                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Land Area (sq ft) — optional</label>
-                            <input type="number" value={form.landArea} onChange={e => set('landArea', e.target.value)} placeholder="1500"
-                                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14 }} />
-                        </div>
-                        <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                                <input type="checkbox" checked={form.includeInterior} onChange={e => set('includeInterior', e.target.checked)} />
-                                Interior (₹450/sqft)
-                            </label>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                                <input type="checkbox" checked={form.includeParking} onChange={e => set('includeParking', e.target.checked)} />
-                                Parking
-                            </label>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                                <input type="checkbox" checked={form.includeLandscaping} onChange={e => set('includeLandscaping', e.target.checked)} />
-                                Landscaping
+            {tab === 'cost' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                    <div className="glass-card" style={{ padding: 24 }}>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>💰 Property Details</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Property Value (₹)</label>
+                                <input type="number" value={propertyValue} onChange={e => setPropertyValue(e.target.value)} placeholder="5000000" style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14 }} /></div>
+                            <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>State</label>
+                                <select value={state} onChange={e => setState(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14 }}>
+                                    {STATES_RERA.map(s => <option key={s.state} value={s.state}>{s.state}</option>)}
+                                </select></div>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                                <input type="checkbox" checked={isFemale} onChange={e => setIsFemale(e.target.checked)} /> Female buyer (stamp duty concession)
                             </label>
                         </div>
-                        <button onClick={calculate} style={{ padding: '12px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #C9A84C, #E8CC7D)', color: '#0f172a', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-                            🏗️ Calculate Construction Cost
-                        </button>
+                    </div>
+                    <div className="glass-card" style={{ padding: 24 }}>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>📊 Total Cost Breakup</h3>
+                        {pv > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {[
+                                    { label: 'Property Value', value: pv, color: undefined },
+                                    { label: `Stamp Duty (${sdRate}%)`, value: stampDuty, color: '#ef4444' },
+                                    { label: `Registration Fee (${stateData.regFee}%)`, value: regFee, color: '#f59e0b' },
+                                    { label: `GST (${pv <= 4500000 ? '1%' : '5%'} — ${pv <= 4500000 ? 'affordable' : 'non-affordable'})`, value: gstOnProp, color: '#8b5cf6' },
+                                    { label: 'Legal/Brokerage (~0.5%)', value: legalFee, color: '#6366f1' },
+                                ].map(r => (
+                                    <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: 13 }}>
+                                        <span style={{ color: 'var(--text-secondary)' }}>{r.label}</span>
+                                        <span style={{ fontWeight: 700, color: r.color || 'var(--text-primary)' }}>₹{r.value.toLocaleString('en-IN')}</span>
+                                    </div>
+                                ))}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '2px solid rgba(201,168,76,0.3)', fontSize: 16 }}>
+                                    <span style={{ fontWeight: 700, color: '#C9A84C' }}>Total Cost</span>
+                                    <span style={{ fontWeight: 800, color: '#C9A84C' }}>₹{totalCost.toLocaleString('en-IN')}</span>
+                                </div>
+                            </div>
+                        ) : <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: 24 }}>Enter property value</p>}
                     </div>
                 </div>
+            )}
 
-                {/* Results */}
-                <div className="glass-card" style={{ padding: 24 }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>📊 Cost Estimate</h3>
-                    {!result ? (
-                        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>
-                            <div style={{ fontSize: 36, marginBottom: 8 }}>🏠</div>
-                            <p>Enter project details and click Calculate</p>
-                        </div>
-                    ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            {/* Grand Total */}
-                            <div style={{ padding: 16, borderRadius: 12, background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', textAlign: 'center' }}>
-                                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Estimated Grand Total</div>
-                                <div style={{ fontSize: 28, fontWeight: 800, color: '#C9A84C' }}>{fmt(result.grandTotal)}</div>
-                                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                                    ₹{Math.round(result.grandTotal / result.totalBuildArea).toLocaleString('en-IN')}/sqft (all inclusive)
-                                </div>
+            {tab === 'carpet' && (
+                <div className="glass-card" style={{ padding: 24, maxWidth: 500 }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>📐 Built-Up to Carpet Area</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Built-Up Area (sq ft)</label>
+                            <input type="number" value={builtUp} onChange={e => setBuiltUp(e.target.value)} placeholder="1200" style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14 }} /></div>
+                        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Conversion Factor</label>
+                            <select value={convFactor} onChange={e => setConvFactor(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14 }}>
+                                <option value="0.70">0.70 — Low-rise apartment</option>
+                                <option value="0.75">0.75 — Standard apartment</option>
+                                <option value="0.80">0.80 — Premium/villa</option>
+                            </select></div>
+                        {carpet > 0 && (
+                            <div style={{ padding: 16, borderRadius: 12, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', textAlign: 'center' }}>
+                                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Carpet Area (RERA)</div>
+                                <div style={{ fontSize: 28, fontWeight: 800, color: '#22c55e' }}>{carpet} sq ft</div>
+                                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>= {builtUp} × {convFactor} conversion factor</div>
                             </div>
-
-                            {/* Construction Costs */}
-                            <div style={{ padding: 14, borderRadius: 10, background: 'var(--bg-secondary)' }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: '#22c55e' }}>🔨 Construction Costs</div>
-                                {[
-                                    { label: `Construction (${result.totalBuildArea} sqft × ₹${result.costPerSqFt})`, value: result.constructionCost, color: '#6366f1' },
-                                    result.landCost > 0 ? { label: 'Land Cost', value: result.landCost, color: '#8b5cf6' } : null,
-                                    result.interiorCost > 0 ? { label: 'Interior Finishing', value: result.interiorCost, color: '#14b8a6' } : null,
-                                    result.parkingCost > 0 ? { label: 'Parking', value: result.parkingCost, color: '#f59e0b' } : null,
-                                    result.landscapingCost > 0 ? { label: 'Landscaping', value: result.landscapingCost, color: '#22c55e' } : null,
-                                ].filter(Boolean).map((r: any) => (
-                                    <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12 }}>
-                                        <span style={{ color: 'var(--text-secondary)' }}>{r.label}</span>
-                                        <span style={{ fontWeight: 700, color: r.color }}>{fmt(r.value)}</span>
-                                    </div>
-                                ))}
-                                <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                                    <span style={{ fontWeight: 700 }}>Subtotal</span>
-                                    <span style={{ fontWeight: 800, color: '#22c55e' }}>{fmt(result.totalProjectCost)}</span>
-                                </div>
-                            </div>
-
-                            {/* Statutory & Fees */}
-                            <div style={{ padding: 14, borderRadius: 10, background: 'var(--bg-secondary)' }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: '#ef4444' }}>📋 Statutory & Professional Fees</div>
-                                {[
-                                    { label: 'Stamp Duty (5%)', value: result.stampDuty },
-                                    { label: 'Registration (1%)', value: result.registrationFee },
-                                    { label: 'GST (5%)', value: result.gst },
-                                    { label: 'RERA Registration', value: result.reraRegistration },
-                                    { label: 'Architect Fee (4%)', value: result.architectFee },
-                                    { label: 'Legal & Misc (2%)', value: result.legalFee },
-                                ].map(r => (
-                                    <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12 }}>
-                                        <span style={{ color: 'var(--text-secondary)' }}>{r.label}</span>
-                                        <span style={{ fontWeight: 600, color: '#ef4444' }}>{fmt(r.value)}</span>
-                                    </div>
-                                ))}
-                                <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                                    <span style={{ fontWeight: 700 }}>Total Fees</span>
-                                    <span style={{ fontWeight: 800, color: '#ef4444' }}>{fmt(result.totalStatutory)}</span>
-                                </div>
-                            </div>
-
-                            {/* Cost Breakdown Chart */}
-                            <div style={{ padding: 14, borderRadius: 10, background: 'var(--bg-secondary)' }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>📊 Construction Breakdown</div>
-                                {result.breakdown.map((b: any) => (
-                                    <div key={b.item} style={{ marginBottom: 6 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 2 }}>
-                                            <span style={{ color: 'var(--text-secondary)' }}>{b.item}</span>
-                                            <span style={{ fontWeight: 600 }}>{fmt(b.amount)} ({b.pct}%)</span>
-                                        </div>
-                                        <div style={{ height: 6, borderRadius: 3, background: 'rgba(201,168,76,0.1)' }}>
-                                            <div style={{ height: '100%', width: `${b.pct * 3.3}%`, borderRadius: 3, background: 'linear-gradient(90deg, #C9A84C, #E8CC7D)', transition: 'width 0.5s ease' }} />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {tab === 'emi' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                    <div className="glass-card" style={{ padding: 24 }}>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>🏦 Home Loan EMI</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Loan Amount (₹)</label>
+                                <input type="number" value={loanAmt} onChange={e => setLoanAmt(e.target.value)} placeholder="4000000" style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14 }} /></div>
+                            <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Interest Rate (% p.a.)</label>
+                                <input type="number" step="0.1" value={loanRate} onChange={e => setLoanRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14 }} /></div>
+                            <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Tenure (years)</label>
+                                <input type="number" value={loanTenure} onChange={e => setLoanTenure(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14 }} /></div>
+                        </div>
+                    </div>
+                    <div className="glass-card" style={{ padding: 24 }}>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>📊 EMI Breakup</h3>
+                        {emi > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <div style={{ textAlign: 'center', padding: 16, borderRadius: 12, background: 'rgba(201,168,76,0.08)' }}>
+                                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Monthly EMI</div>
+                                    <div style={{ fontSize: 32, fontWeight: 800, color: '#C9A84C' }}>₹{emi.toLocaleString('en-IN')}</div>
+                                </div>
+                                {[
+                                    { label: 'Principal', value: la, color: '#22c55e' },
+                                    { label: 'Total Interest', value: totalInt, color: '#ef4444' },
+                                    { label: 'Total Payment', value: totalPay, color: '#6366f1' },
+                                ].map(r => (
+                                    <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                        <span style={{ color: 'var(--text-secondary)' }}>{r.label}</span>
+                                        <span style={{ fontWeight: 700, color: r.color }}>₹{r.value.toLocaleString('en-IN')}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: 24 }}>Enter loan details</p>}
+                    </div>
+                </div>
+            )}
+
+            {tab === 'portals' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+                    {STATES_RERA.map(s => (
+                        <a key={s.state} href={s.portal} target="_blank" rel="noreferrer"
+                            style={{ padding: 18, borderRadius: 12, border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', textDecoration: 'none', transition: 'all 0.2s', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>🏛️ {s.state}</div>
+                                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>Stamp: {s.stampDuty}% | Reg: {s.regFee}%</div>
+                            </div>
+                            <span style={{ fontSize: 12, color: '#6366f1', fontWeight: 600 }}>Visit →</span>
+                        </a>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
