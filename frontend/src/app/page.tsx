@@ -42,10 +42,10 @@ export default function HomePage() {
           <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 12, background: 'linear-gradient(135deg, #C9A84C, #E8CC7D)', color: '#07091A', letterSpacing: 1 }}>v3.0</span>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <Link href="/sign-in" style={{ padding: '8px 20px', borderRadius: 8, border: '1px solid rgba(201,168,76,0.3)', color: '#C9A84C', fontSize: 13, fontWeight: 600, textDecoration: 'none', transition: 'all 0.2s' }}>
+          <Link href="/dashboard" style={{ padding: '8px 20px', borderRadius: 8, border: '1px solid rgba(201,168,76,0.3)', color: '#C9A84C', fontSize: 13, fontWeight: 600, textDecoration: 'none', transition: 'all 0.2s' }}>
             Sign In
           </Link>
-          <Link href="/sign-up" style={{ padding: '8px 20px', borderRadius: 8, background: 'linear-gradient(135deg, #C9A84C, #E8CC7D)', color: '#07091A', fontSize: 13, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(201,168,76,0.3)' }}>
+          <Link href="/dashboard" style={{ padding: '8px 20px', borderRadius: 8, background: 'linear-gradient(135deg, #C9A84C, #E8CC7D)', color: '#07091A', fontSize: 13, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(201,168,76,0.3)' }}>
             Start Free Trial
           </Link>
         </div>
@@ -76,7 +76,7 @@ export default function HomePage() {
           </div>
 
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-            <Link href="/sign-up" style={{ padding: '14px 36px', borderRadius: 10, background: 'linear-gradient(135deg, #C9A84C, #E8CC7D)', color: '#07091A', fontSize: 15, fontWeight: 700, textDecoration: 'none', boxShadow: '0 8px 32px rgba(201,168,76,0.3)', transition: 'transform 0.2s' }}>
+            <Link href="/dashboard" style={{ padding: '14px 36px', borderRadius: 10, background: 'linear-gradient(135deg, #C9A84C, #E8CC7D)', color: '#07091A', fontSize: 15, fontWeight: 700, textDecoration: 'none', boxShadow: '0 8px 32px rgba(201,168,76,0.3)', transition: 'transform 0.2s' }}>
               Start Free Trial →
             </Link>
             <Link href="/dashboard" style={{ padding: '14px 36px', borderRadius: 10, border: '1px solid rgba(201,168,76,0.3)', color: '#C9A84C', fontSize: 15, fontWeight: 600, textDecoration: 'none' }}>
@@ -163,7 +163,7 @@ export default function HomePage() {
                   {p.price}<span style={{ fontSize: 14, fontWeight: 400, color: '#6B7A9F' }}>{p.period}</span>
                 </div>
                 <div style={{ fontSize: 12, color: '#C9A84C', marginBottom: 24 }}>{p.modules}</div>
-                <Link href="/sign-up" style={{
+                <Link href="/dashboard" style={{
                   display: 'block', padding: '12px 24px', borderRadius: 10, textDecoration: 'none', fontWeight: 700, fontSize: 13,
                   background: p.highlight ? 'linear-gradient(135deg, #C9A84C, #E8CC7D)' : 'rgba(201,168,76,0.1)',
                   color: p.highlight ? '#07091A' : '#C9A84C',

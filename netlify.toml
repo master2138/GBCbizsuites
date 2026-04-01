@@ -3,11 +3,5 @@
   command = "npm run build"
   publish = ".next"
 
-[build.environment]
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_bWFpbi1zaHJldy0yMy5jbGVyay5hY2NvdW50cy5kZXYk"
-  CLERK_SECRET_KEY = "sk_test_gx8C3u5m16K7ole6GtGcrA8GOa9Qdq8Nzd20tWX7Cb"
-  NEXT_PUBLIC_CLERK_SIGN_IN_URL = "/sign-in"
-  NEXT_PUBLIC_CLERK_SIGN_UP_URL = "/sign-up"
-
 [[plugins]]
   package = "@netlify/plugin-nextjs"

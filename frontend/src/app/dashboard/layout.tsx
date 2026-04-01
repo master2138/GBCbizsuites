@@ -2,18 +2,6 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
 
-let UserButton: React.ComponentType<{ appearance?: Record<string, unknown> }> | null = null;
-let useUserHook: (() => { user: Record<string, unknown> | null | undefined; isLoaded: boolean }) | null = null;
-
-try {
-    // Dynamic require so the dashboard works even without Clerk
-    const clerk = require('@clerk/nextjs');
-    UserButton = clerk.UserButton;
-    useUserHook = clerk.useUser;
-} catch {
-    // Clerk not available — fallback
-}
-
 const NAV_ITEMS = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/dashboard/income-tax', label: 'Income Tax', icon: '⚡' },
@@ -36,28 +24,6 @@ const NAV_ITEMS = [
     { path: '/dashboard/gstin', label: 'GSTIN Verifier', icon: '🔍' },
     { path: '/dashboard/notifications', label: 'Notifications', icon: '🔔' },
 ];
-
-function UserProfile({ sidebarOpen }: { sidebarOpen: boolean }) {
-    if (!useUserHook || !UserButton) return null;
-    try {
-        const { user, isLoaded } = useUserHook();
-        if (!isLoaded) return <div style={{ padding: 16, fontSize: 12, color: 'var(--text-secondary)' }}>Loading...</div>;
-        return (
-            <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <UserButton appearance={{ elements: { avatarBox: { width: 36, height: 36 } } }} />
-                {sidebarOpen && user && (
-                    <div style={{ overflow: 'hidden' }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {(user as Record<string, unknown>).fullName as string || (user as Record<string, unknown>).firstName as string || 'User'}
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    } catch {
-        return null;
-    }
-}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
@@ -84,8 +50,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     ))}
                 </nav>
 
-                {/* User Profile */}
-                <UserProfile sidebarOpen={sidebarOpen} />
+                {/* User */}
+                <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>👤</div>
+                    {sidebarOpen && (
+                        <div style={{ overflow: 'hidden' }}>
+                            <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap' }}>CA User</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Practice Admin</div>
+                        </div>
+                    )}
+                </div>
             </aside>
 
             {/* Main Content */}
@@ -97,4 +71,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
     );
 }
-
