@@ -1,8 +1,18 @@
 'use client';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { UserButton, useUser } from '@clerk/nextjs';
-import ClerkApiProvider from '@/components/ClerkApiProvider';
+
+let UserButton: React.ComponentType<{ appearance?: Record<string, unknown> }> | null = null;
+let useUserHook: (() => { user: Record<string, unknown> | null | undefined; isLoaded: boolean }) | null = null;
+
+try {
+    // Dynamic require so the dashboard works even without Clerk
+    const clerk = require('@clerk/nextjs');
+    UserButton = clerk.UserButton;
+    useUserHook = clerk.useUser;
+} catch {
+    // Clerk not available — fallback
+}
 
 const NAV_ITEMS = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
@@ -27,13 +37,32 @@ const NAV_ITEMS = [
     { path: '/dashboard/notifications', label: 'Notifications', icon: '🔔' },
 ];
 
+function UserProfile({ sidebarOpen }: { sidebarOpen: boolean }) {
+    if (!useUserHook || !UserButton) return null;
+    try {
+        const { user, isLoaded } = useUserHook();
+        if (!isLoaded) return <div style={{ padding: 16, fontSize: 12, color: 'var(--text-secondary)' }}>Loading...</div>;
+        return (
+            <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <UserButton appearance={{ elements: { avatarBox: { width: 36, height: 36 } } }} />
+                {sidebarOpen && user && (
+                    <div style={{ overflow: 'hidden' }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {(user as Record<string, unknown>).fullName as string || (user as Record<string, unknown>).firstName as string || 'User'}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    } catch {
+        return null;
+    }
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
-    const { user, isLoaded } = useUser();
     const [sidebarOpen, setSidebarOpen] = useState(true);
-
-    if (!isLoaded) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}><div className="gradient-text" style={{ fontSize: 24, fontWeight: 700 }}>Loading...</div></div>;
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
@@ -46,7 +75,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
 
                 {/* Nav */}
-                <nav style={{ flex: 1, padding: '16px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <nav style={{ flex: 1, padding: '16px 8px', display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto' }}>
                     {NAV_ITEMS.map(item => (
                         <div key={item.path} className={`sidebar-link ${pathname === item.path ? 'active' : ''}`} onClick={() => router.push(item.path)} style={{ cursor: 'pointer' }}>
                             <span style={{ fontSize: 20, flexShrink: 0 }}>{item.icon}</span>
@@ -55,36 +84,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     ))}
                 </nav>
 
-                {/* User Profile with Clerk */}
-                <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <UserButton
-                        appearance={{
-                            elements: {
-                                avatarBox: { width: 36, height: 36 },
-                            }
-                        }}
-                    />
-                    {sidebarOpen && user && (
-                        <div style={{ overflow: 'hidden' }}>
-                            <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {user.fullName || user.firstName || 'User'}
-                            </div>
-                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {user.primaryEmailAddress?.emailAddress || ''}
-                            </div>
-                        </div>
-                    )}
-                </div>
+                {/* User Profile */}
+                <UserProfile sidebarOpen={sidebarOpen} />
             </aside>
 
             {/* Main Content */}
             <main style={{ flex: 1, overflow: 'auto' }}>
-                <ClerkApiProvider>
-                    <div style={{ padding: '32px 40px', maxWidth: 1400 }}>
-                        {children}
-                    </div>
-                </ClerkApiProvider>
+                <div style={{ padding: '32px 40px', maxWidth: 1400 }}>
+                    {children}
+                </div>
             </main>
         </div>
     );
 }
+
