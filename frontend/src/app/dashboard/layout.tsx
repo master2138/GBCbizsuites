@@ -6,6 +6,7 @@ import ClerkApiProvider from '@/components/ClerkApiProvider';
 
 const NAV_ITEMS = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+    { path: '/dashboard/income-tax', label: 'Income Tax', icon: '⚡' },
     { path: '/dashboard/upload', label: 'Bank Statements', icon: '📄' },
     { path: '/dashboard/ecommerce', label: 'E-Commerce', icon: '🛒' },
     { path: '/dashboard/invoices', label: 'Invoices', icon: '🧾' },
