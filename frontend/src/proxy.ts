@@ -6,10 +6,10 @@ const isProtectedRoute = createRouteMatcher([
     '/dashboard(.*)',
 ]);
 
-// If Clerk keys are not set, skip auth middleware entirely
+// If Clerk keys are not set, skip auth entirely
 const clerkConfigured = !!(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY);
 
-function fallbackMiddleware(req: NextRequest) {
+function fallbackProxy(req: NextRequest) {
     return NextResponse.next();
 }
 
@@ -19,7 +19,7 @@ export default clerkConfigured
             await auth.protect();
         }
     })
-    : fallbackMiddleware;
+    : fallbackProxy;
 
 export const config = {
     matcher: [
