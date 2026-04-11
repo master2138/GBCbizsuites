@@ -5,6 +5,9 @@ import { useState } from 'react';
 const NAV_ITEMS = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/dashboard/income-tax', label: 'Income Tax', icon: '⚡' },
+    { path: '/dashboard/tds', label: 'TDS / TCS', icon: '💳' },
+    { path: '/dashboard/balance-sheet', label: 'Balance Sheet', icon: '📑' },
+    { path: '/dashboard/tax-audit', label: 'Form 3CD', icon: '📝' },
     { path: '/dashboard/upload', label: 'Bank Statements', icon: '📄' },
     { path: '/dashboard/ecommerce', label: 'E-Commerce', icon: '🛒' },
     { path: '/dashboard/invoices', label: 'Invoices', icon: '🧾' },
