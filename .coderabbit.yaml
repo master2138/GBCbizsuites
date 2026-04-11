@@ -1,0 +1,33 @@
+reviews:
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+  path_filters:
+    - "!try c/**"
+    - "!Attached/**"
+    - "!skills/**"
+    - "!*.docx"
+    - "!*.pdf"
+  tools:
+    eslint:
+      enabled: true
+    biome:
+      enabled: true
+  path_instructions:
+    - path: "frontend/src/**"
+      instructions: |
+        This is a Next.js 16 app (React 19). Check for:
+        - Unused imports
+        - Missing 'use client' directives
+        - Any remaining @clerk/nextjs references (Clerk was removed)
+        - Type safety (no `any` types)
+        - Proper error boundaries
+    - path: "backend/src/**"
+      instructions: |
+        Node.js + Express + Prisma backend. Check for:
+        - SQL injection via raw queries
+        - Missing input validation
+        - Unhandled promise rejections
+        - Proper error responses
