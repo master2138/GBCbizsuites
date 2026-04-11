@@ -1,21 +1,16 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, getDocs, updateDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 
 const fmt = (n: number) => n?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '0.00';
 const GST_RATES = [0, 3, 5, 12, 18, 28];
-const STATES: Record<string, string> = {
-    '01': 'Jammu & Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh',
-    '05': 'Uttarakhand', '06': 'Haryana', '07': 'Delhi', '08': 'Rajasthan',
-    '09': 'Uttar Pradesh', '10': 'Bihar', '19': 'West Bengal', '21': 'Odisha',
-    '23': 'Madhya Pradesh', '24': 'Gujarat', '27': 'Maharashtra', '29': 'Karnataka',
-    '30': 'Goa', '32': 'Kerala', '33': 'Tamil Nadu', '36': 'Telangana', '37': 'Andhra Pradesh',
-};
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
     DRAFT: { bg: 'rgba(156,163,175,0.15)', color: '#9ca3af' }, SENT: { bg: 'rgba(59,130,246,0.15)', color: '#3b82f6' },
     PAID: { bg: 'rgba(16,185,129,0.15)', color: '#10b981' }, OVERDUE: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444' },
 };
 
-const DEMO_INVOICES = [
+const SEED_INVOICES = [
     { id: '1', invoice_number: 'INV-2026-001', client_name: 'M/s Fresh Foods Pvt Ltd', client_gstin: '27AABCF5678K1ZR', invoice_date: '2026-03-01', grand_total: 59000, status: 'PAID' },
     { id: '2', invoice_number: 'INV-2026-002', client_name: 'Tech Solutions LLP', client_gstin: '27AABCT4567J1ZS', invoice_date: '2026-03-05', grand_total: 29500, status: 'PAID' },
     { id: '3', invoice_number: 'INV-2026-003', client_name: 'Rajesh Sharma (HUF)', client_gstin: '—', invoice_date: '2026-03-10', grand_total: 9440, status: 'OVERDUE' },
@@ -26,12 +21,23 @@ const DEMO_INVOICES = [
 const emptyItem = () => ({ description: '', hsn: '', quantity: 1, unitPrice: 0, gstRate: 18 });
 
 export default function InvoicesPage() {
-    const [invoices, setInvoices] = useState(DEMO_INVOICES);
+    const [invoices, setInvoices] = useState(SEED_INVOICES);
     const [showForm, setShowForm] = useState(false);
+    const [firebaseOk, setFirebaseOk] = useState(false);
     const [form, setForm] = useState({
         client_name: '', client_gstin: '', seller_name: 'GBC & Associates', seller_gstin: '27AAAFG1234A1ZP',
-        client_state: '27', seller_state: '27', items: [emptyItem()], notes: '', due_date: '',
+        items: [emptyItem()], notes: '', due_date: '',
     });
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const snap = await getDocs(query(collection(db, 'invoices'), orderBy('createdAt', 'desc')));
+                if (snap.docs.length > 0) setInvoices(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
+                setFirebaseOk(true);
+            } catch { setFirebaseOk(false); }
+        })();
+    }, []);
 
     const addItem = () => setForm(f => ({ ...f, items: [...f.items, emptyItem()] }));
     const removeItem = (idx: number) => setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
@@ -41,11 +47,23 @@ export default function InvoicesPage() {
     const totalGST = form.items.reduce((s, item) => s + (item.quantity * item.unitPrice * item.gstRate / 100), 0);
     const grandTotal = Math.round(subtotal + totalGST);
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         if (!form.client_name) return;
-        setInvoices(prev => [{ id: String(prev.length + 1), invoice_number: `INV-2026-${String(prev.length + 1).padStart(3, '0')}`, client_name: form.client_name, client_gstin: form.client_gstin || '—', invoice_date: new Date().toISOString().slice(0, 10), grand_total: grandTotal, status: 'DRAFT' }, ...prev]);
+        const invNo = `INV-2026-${String(invoices.length + 1).padStart(3, '0')}`;
+        const newInv = { invoice_number: invNo, client_name: form.client_name, client_gstin: form.client_gstin || '—', invoice_date: new Date().toISOString().slice(0, 10), grand_total: grandTotal, status: 'DRAFT', items: form.items, seller_name: form.seller_name, notes: form.notes };
+        try {
+            const docRef = await addDoc(collection(db, 'invoices'), { ...newInv, createdAt: serverTimestamp() });
+            setInvoices(prev => [{ ...newInv, id: docRef.id }, ...prev]);
+        } catch {
+            setInvoices(prev => [{ ...newInv, id: String(Date.now()) }, ...prev]);
+        }
         setShowForm(false);
-        setForm({ client_name: '', client_gstin: '', seller_name: 'GBC & Associates', seller_gstin: '27AAAFG1234A1ZP', client_state: '27', seller_state: '27', items: [emptyItem()], notes: '', due_date: '' });
+        setForm({ client_name: '', client_gstin: '', seller_name: 'GBC & Associates', seller_gstin: '27AAAFG1234A1ZP', items: [emptyItem()], notes: '', due_date: '' });
+    };
+
+    const updateStatus = async (id: string, status: string) => {
+        setInvoices(p => p.map(i => i.id === id ? { ...i, status } : i));
+        try { await updateDoc(doc(db, 'invoices', id), { status }); } catch { }
     };
 
     const totalReceived = invoices.filter(i => i.status === 'PAID').reduce((s, i) => s + i.grand_total, 0);
@@ -57,7 +75,10 @@ export default function InvoicesPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <div>
                     <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }} className="gradient-text">🧾 Invoices & Billing</h1>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Create GST invoices · Track payments · Manage billing</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                        Create GST invoices · Track payments
+                        {firebaseOk && <span style={{ color: '#22c55e', marginLeft: 8 }}>🔥 Firebase</span>}
+                    </p>
                 </div>
                 <button onClick={() => setShowForm(!showForm)} style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: 'var(--accent-gradient)', color: '#07091A', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                     {showForm ? '✕ Cancel' : '+ New Invoice'}
@@ -137,8 +158,8 @@ export default function InvoicesPage() {
                             <td style={{ padding: '10px 8px' }}><span style={{ padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: STATUS_COLORS[inv.status]?.bg, color: STATUS_COLORS[inv.status]?.color }}>{inv.status}</span></td>
                             <td style={{ padding: '10px 8px' }}>
                                 <div style={{ display: 'flex', gap: 4 }}>
-                                    {inv.status === 'DRAFT' && <button onClick={() => setInvoices(p => p.map(i => i.id === inv.id ? { ...i, status: 'SENT' } : i))} style={{ background: 'none', border: '1px solid var(--border-color)', borderRadius: 4, padding: '2px 8px', fontSize: 11, cursor: 'pointer', color: '#3b82f6' }}>📤 Send</button>}
-                                    {inv.status === 'SENT' && <button onClick={() => setInvoices(p => p.map(i => i.id === inv.id ? { ...i, status: 'PAID' } : i))} style={{ background: 'none', border: '1px solid var(--border-color)', borderRadius: 4, padding: '2px 8px', fontSize: 11, cursor: 'pointer', color: '#22c55e' }}>✅ Paid</button>}
+                                    {inv.status === 'DRAFT' && <button onClick={() => updateStatus(inv.id, 'SENT')} style={{ background: 'none', border: '1px solid var(--border-color)', borderRadius: 4, padding: '2px 8px', fontSize: 11, cursor: 'pointer', color: '#3b82f6' }}>📤 Send</button>}
+                                    {inv.status === 'SENT' && <button onClick={() => updateStatus(inv.id, 'PAID')} style={{ background: 'none', border: '1px solid var(--border-color)', borderRadius: 4, padding: '2px 8px', fontSize: 11, cursor: 'pointer', color: '#22c55e' }}>✅ Paid</button>}
                                 </div>
                             </td>
                         </tr>
