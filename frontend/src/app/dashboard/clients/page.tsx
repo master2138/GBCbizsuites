@@ -1,147 +1,90 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { useState } from 'react';
+
+type Client = { name: string; pan: string; gstin: string; type: string; status: string; filings: number; revenue: string; phone: string; };
+
+const CLIENTS: Client[] = [
+    { name: 'Rajesh Sharma (HUF)', pan: 'ABCPS1234D', gstin: '27ABCPS1234D1ZP', type: 'HUF', status: 'Active', filings: 8, revenue: '₹48K', phone: '98765-43210' },
+    { name: 'M/s Fresh Foods Pvt Ltd', pan: 'AABCF5678K', gstin: '27AABCF5678K1ZR', type: 'Pvt Ltd', status: 'Active', filings: 12, revenue: '₹1.2L', phone: '98765-11111' },
+    { name: 'Priya Gupta', pan: 'BCDPG9876H', gstin: '—', type: 'Individual', status: 'Active', filings: 3, revenue: '₹15K', phone: '98765-22222' },
+    { name: 'Tech Solutions LLP', pan: 'AABCT4567J', gstin: '27AABCT4567J1ZS', type: 'LLP', status: 'Active', filings: 10, revenue: '₹85K', phone: '98765-33333' },
+    { name: 'NRI Holdings Ltd', pan: 'CDEPN2345L', gstin: '—', type: 'Company', status: 'Inactive', filings: 2, revenue: '₹25K', phone: '98765-44444' },
+    { name: 'Sharma & Sons Partnership', pan: 'AADFS7890M', gstin: '27AADFS7890M1ZT', type: 'Firm', status: 'Active', filings: 6, revenue: '₹55K', phone: '98765-55555' },
+    { name: 'Anita Desai Trust', pan: 'AAATD3456N', gstin: '—', type: 'Trust', status: 'Active', filings: 4, revenue: '₹30K', phone: '98765-66666' },
+    { name: 'Green Earth NGO', pan: 'AAAPG6789P', gstin: '—', type: 'AOP/BOI', status: 'Active', filings: 5, revenue: '₹20K', phone: '98765-77777' },
+];
 
 export default function ClientsPage() {
-    const [clients, setClients] = useState<any[]>([]);
-    const router = useRouter();
-    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const [showModal, setShowModal] = useState(false);
-    const [editingClient, setEditingClient] = useState<any>(null);
-    const [form, setForm] = useState({ name: '', email: '', phone: '', gstin: '', pan: '', address: '', business_type: '' });
-    const [pagination, setPagination] = useState<any>({});
-
-    useEffect(() => { loadClients(); }, []);
-
-    const loadClients = async (page = 1) => {
-        try {
-            const res = await api.getClients({ search, page, limit: 20 });
-            setClients(res.clients || []);
-            setPagination(res.pagination || {});
-        } catch (err) { console.error(err); }
-        setLoading(false);
-    };
-
-    const handleSearch = (e: React.FormEvent) => { e.preventDefault(); loadClients(); };
-
-    const openNew = () => { setEditingClient(null); setForm({ name: '', email: '', phone: '', gstin: '', pan: '', address: '', business_type: '' }); setShowModal(true); };
-
-    const openEdit = (client: any) => {
-        setEditingClient(client);
-        setForm({ name: client.name, email: client.email || '', phone: client.phone || '', gstin: client.gstin || '', pan: client.pan || '', address: client.address || '', business_type: client.business_type || '' });
-        setShowModal(true);
-    };
-
-    const handleSave = async () => {
-        try {
-            if (editingClient) {
-                await api.updateClient(editingClient.id, form);
-            } else {
-                await api.createClient(form);
-            }
-            setShowModal(false);
-            loadClients();
-        } catch (err: any) { alert(err.message); }
-    };
-
-    const handleDelete = async (id: string, name: string) => {
-        if (!confirm(`Delete client "${name}"?`)) return;
-        try { await api.deleteClient(id); loadClients(); } catch (err: any) { alert(err.message); }
-    };
-
-    const update = (field: string, value: string) => setForm(p => ({ ...p, [field]: value }));
-
-    if (loading) return <div className="gradient-text" style={{ fontSize: 20, fontWeight: 600, padding: 40 }}>Loading clients...</div>;
+    const [typeFilter, setTypeFilter] = useState('all');
+    const types = ['all', ...Array.from(new Set(CLIENTS.map(c => c.type)))];
+    const filtered = CLIENTS.filter(c =>
+        (typeFilter === 'all' || c.type === typeFilter) &&
+        (c.name.toLowerCase().includes(search.toLowerCase()) || c.pan.includes(search.toUpperCase()))
+    );
 
     return (
         <div className="animate-fadeIn">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <div>
-                    <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 4 }}>Client Management</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>{pagination.total || 0} clients total</p>
+                    <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }} className="gradient-text">Client Master</h1>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{CLIENTS.length} clients · PAN · GSTIN · TAN Registry</p>
                 </div>
-                <button className="btn-primary" onClick={openNew}>➕ Add Client</button>
+                <button style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: 'var(--accent-gradient)', color: '#07091A', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add Client</button>
             </div>
 
-            {/* Search */}
-            <form onSubmit={handleSearch} style={{ marginBottom: 24, display: 'flex', gap: 12 }}>
-                <input className="input-field" placeholder="Search by name, GSTIN, PAN, or email..." value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 400 }} />
-                <button className="btn-secondary" type="submit">🔍 Search</button>
-            </form>
-
-            {/* Table */}
-            {clients.length === 0 ? (
-                <div className="glass-card" style={{ padding: 48, textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>👥</div>
-                    <h3 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>No clients yet</h3>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>Start by adding your first client.</p>
-                    <button className="btn-primary" onClick={openNew}>➕ Add First Client</button>
-                </div>
-            ) : (
-                <div className="table-container">
-                    <table>
-                        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>GSTIN</th><th>PAN</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody>
-                            {clients.map(c => (
-                                <tr key={c.id}>
-                                    <td style={{ fontWeight: 600 }}>{c.name}</td>
-                                    <td>{c.email || '-'}</td>
-                                    <td>{c.phone || '-'}</td>
-                                    <td style={{ fontFamily: 'monospace', fontSize: 13 }}>{c.gstin || '-'}</td>
-                                    <td style={{ fontFamily: 'monospace', fontSize: 13 }}>{c.pan || '-'}</td>
-                                    <td><span className={`badge ${c.status === 'active' ? 'badge-success' : 'badge-warning'}`}>{c.status}</span></td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <button className="btn-primary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => router.push(`/dashboard/clients/${c.id}`)}>👁️ View</button>
-                                            <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => openEdit(c)}>✏️ Edit</button>
-                                            <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12, borderColor: 'rgba(239,68,68,0.3)' }} onClick={() => handleDelete(c.id, c.name)}>🗑️</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-
-            {/* Pagination */}
-            {pagination.totalPages > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
-                    {Array.from({ length: pagination.totalPages }, (_, i) => (
-                        <button key={i} className={i + 1 === pagination.page ? 'btn-primary' : 'btn-secondary'} style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => loadClients(i + 1)}>
-                            {i + 1}
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            {/* Modal */}
-            {showModal && (
-                <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>{editingClient ? '✏️ Edit Client' : '➕ New Client'}</h2>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            <div><label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Name*</label><input className="input-field" value={form.name} onChange={e => update('name', e.target.value)} placeholder="Client name" required /></div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                <div><label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Email</label><input className="input-field" type="email" value={form.email} onChange={e => update('email', e.target.value)} /></div>
-                                <div><label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Phone</label><input className="input-field" value={form.phone} onChange={e => update('phone', e.target.value)} /></div>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                <div><label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>GSTIN</label><input className="input-field" value={form.gstin} onChange={e => update('gstin', e.target.value)} placeholder="22AAAAA0000A1Z5" /></div>
-                                <div><label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>PAN</label><input className="input-field" value={form.pan} onChange={e => update('pan', e.target.value)} placeholder="AAAAA0000A" /></div>
-                            </div>
-                            <div><label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Business Type</label><input className="input-field" value={form.business_type} onChange={e => update('business_type', e.target.value)} placeholder="Pvt Ltd / LLP / Proprietor" /></div>
-                            <div><label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Address</label><textarea className="input-field" rows={2} value={form.address} onChange={e => update('address', e.target.value)} /></div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 12, marginTop: 24, justifyContent: 'flex-end' }}>
-                            <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-                            <button className="btn-primary" onClick={handleSave} disabled={!form.name}>{editingClient ? '💾 Update' : '➕ Create'}</button>
-                        </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10, marginBottom: 16 }}>
+                {[
+                    { label: 'Total', value: CLIENTS.length, color: '#C9A84C' },
+                    { label: 'Active', value: CLIENTS.filter(c => c.status === 'Active').length, color: '#22c55e' },
+                    { label: 'Companies', value: CLIENTS.filter(c => ['Pvt Ltd', 'Company', 'LLP'].includes(c.type)).length, color: '#8B5CF6' },
+                    { label: 'Individuals', value: CLIENTS.filter(c => c.type === 'Individual' || c.type === 'HUF').length, color: '#0D7B7B' },
+                ].map(c => (
+                    <div key={c.label} className="glass-card" style={{ padding: 14, borderLeft: `3px solid ${c.color}`, textAlign: 'center' }}>
+                        <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'monospace', color: c.color }}>{c.value}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{c.label}</div>
                     </div>
-                </div>
-            )}
+                ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or PAN..."
+                    style={{ flex: 1, padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.04)', color: 'var(--text-primary)', fontSize: 13 }} />
+                {types.map(t => (
+                    <button key={t} onClick={() => setTypeFilter(t)} style={{
+                        padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                        background: typeFilter === t ? 'var(--accent-gradient)' : 'rgba(255,255,255,0.04)',
+                        color: typeFilter === t ? '#07091A' : 'var(--text-secondary)',
+                    }}>{t === 'all' ? 'All' : t}</button>
+                ))}
+            </div>
+
+            <div className="glass-card" style={{ padding: 16 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead><tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        {['Client', 'PAN', 'GSTIN', 'Type', 'Filings', 'Revenue', 'Status'].map(h =>
+                            <th key={h} style={{ textAlign: 'left', padding: '8px', fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700 }}>{h}</th>
+                        )}
+                    </tr></thead>
+                    <tbody>{filtered.map(c => (
+                        <tr key={c.pan} style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                            <td style={{ padding: '10px 8px', fontWeight: 600 }}>{c.name}</td>
+                            <td style={{ padding: '10px 8px', fontFamily: 'monospace', fontSize: 12 }}>{c.pan}</td>
+                            <td style={{ padding: '10px 8px', fontFamily: 'monospace', fontSize: 11 }}>{c.gstin}</td>
+                            <td style={{ padding: '10px 8px' }}><span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: 'rgba(201,168,76,0.12)' }}>{c.type}</span></td>
+                            <td style={{ padding: '10px 8px', fontFamily: 'monospace' }}>{c.filings}</td>
+                            <td style={{ padding: '10px 8px', fontFamily: 'monospace', color: '#22c55e' }}>{c.revenue}</td>
+                            <td style={{ padding: '10px 8px' }}>
+                                <span style={{
+                                    padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700,
+                                    background: c.status === 'Active' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                                    color: c.status === 'Active' ? '#22c55e' : '#ef4444'
+                                }}>{c.status}</span>
+                            </td>
+                        </tr>
+                    ))}</tbody>
+                </table>
+            </div>
         </div>
     );
 }
