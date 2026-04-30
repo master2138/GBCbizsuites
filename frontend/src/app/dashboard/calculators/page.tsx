@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { api } from '@/lib/api';
+import * as calc from '@/lib/calculators';
 
 const TABS = ['Income Tax', 'HRA', 'EMI', 'SIP', 'PPF', 'GST', 'TDS', 'Gratuity', 'NPS', 'Capital Gains', 'FD', 'RD', 'Depreciation', 'Regime Optimizer', 'Advance Tax', 'Professional Tax', 'Stamp Duty', 'Crypto/VDA Tax'];
 
@@ -63,9 +63,9 @@ function IncomeTaxForm({ onResult, loading, setLoading }: any) {
     const [income, setIncome] = useState('');
     const [deductions, setDeductions] = useState('0');
     const [age, setAge] = useState('below_60');
-    const calc = async () => {
+    const doCalc = () => {
         setLoading(true);
-        try { const r = await api.calcIncomeTax({ gross_salary: +income, section_80c: +deductions, age_group: age }); onResult(r); } catch (e: any) { alert(e.message); }
+        try { onResult(calc.calcIncomeTax({ gross_salary: +income, section_80c: +deductions, age_group: age })); } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
     return (
@@ -80,16 +80,16 @@ function IncomeTaxForm({ onResult, loading, setLoading }: any) {
                     <option value="above_80">Above 80</option>
                 </select>
             </FieldRow>
-            <button className="btn-primary" onClick={calc} disabled={loading || !income} style={{ width: '100%', justifyContent: 'center' }}>{loading ? '⏳' : '🧮 Calculate'}</button>
+            <button className="btn-primary" onClick={doCalc} disabled={loading || !income} style={{ width: '100%', justifyContent: 'center' }}>{loading ? '⏳' : '🧮 Calculate'}</button>
         </div>
     );
 }
 
 function HRAForm({ onResult, loading, setLoading }: any) {
     const [basic, setBasic] = useState(''); const [hra, setHra] = useState(''); const [rent, setRent] = useState(''); const [metro, setMetro] = useState(true);
-    const calc = async () => {
+    const doCalc = () => {
         setLoading(true);
-        try { const r = await api.calcHRA({ basic_salary: +basic, da: 0, hra_received: +hra, rent_paid: +rent, is_metro: metro }); onResult(r); } catch (e: any) { alert(e.message); }
+        try { onResult(calc.calcHRA({ basic_salary: +basic, da: 0, hra_received: +hra, rent_paid: +rent, is_metro: metro })); } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
     return (
@@ -104,16 +104,16 @@ function HRAForm({ onResult, loading, setLoading }: any) {
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}><input type="radio" checked={!metro} onChange={() => setMetro(false)} /> No</label>
                 </div>
             </FieldRow>
-            <button className="btn-primary" onClick={calc} disabled={loading || !basic} style={{ width: '100%', justifyContent: 'center' }}>{loading ? '⏳' : '🧮 Calculate'}</button>
+            <button className="btn-primary" onClick={doCalc} disabled={loading || !basic} style={{ width: '100%', justifyContent: 'center' }}>{loading ? '⏳' : '🧮 Calculate'}</button>
         </div>
     );
 }
 
 function EMIForm({ onResult, loading, setLoading }: any) {
     const [principal, setPrincipal] = useState(''); const [rate, setRate] = useState(''); const [tenure, setTenure] = useState('');
-    const calc = async () => {
+    const doCalc = () => {
         setLoading(true);
-        try { const r = await api.calcEMI({ principal: +principal, annual_rate: +rate, tenure_months: +tenure }); onResult(r); } catch (e: any) { alert(e.message); }
+        try { onResult(calc.calcEMI({ principal: +principal, annual_rate: +rate, tenure_months: +tenure })); } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
     return (
@@ -122,16 +122,16 @@ function EMIForm({ onResult, loading, setLoading }: any) {
             <FieldRow label="Loan Amount (₹)"><input className="input-field" type="number" value={principal} onChange={e => setPrincipal(e.target.value)} placeholder="5000000" /></FieldRow>
             <FieldRow label="Annual Interest Rate (%)"><input className="input-field" type="number" step="0.1" value={rate} onChange={e => setRate(e.target.value)} placeholder="8.5" /></FieldRow>
             <FieldRow label="Tenure (months)"><input className="input-field" type="number" value={tenure} onChange={e => setTenure(e.target.value)} placeholder="240" /></FieldRow>
-            <button className="btn-primary" onClick={calc} disabled={loading || !principal} style={{ width: '100%', justifyContent: 'center' }}>{loading ? '⏳' : '🧮 Calculate'}</button>
+            <button className="btn-primary" onClick={doCalc} disabled={loading || !principal} style={{ width: '100%', justifyContent: 'center' }}>{loading ? '⏳' : '🧮 Calculate'}</button>
         </div>
     );
 }
 
 function SIPForm({ onResult, loading, setLoading }: any) {
     const [monthly, setMonthly] = useState(''); const [rate, setRate] = useState(''); const [years, setYears] = useState('');
-    const calc = async () => {
+    const doCalc = () => {
         setLoading(true);
-        try { const r = await api.calcSIP({ monthly_investment: +monthly, expected_return_rate: +rate, tenure_years: +years }); onResult(r); } catch (e: any) { alert(e.message); }
+        try { onResult(calc.calcSIP({ monthly_investment: +monthly, expected_return_rate: +rate, tenure_years: +years })); } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
     return (
@@ -140,16 +140,16 @@ function SIPForm({ onResult, loading, setLoading }: any) {
             <FieldRow label="Monthly Investment (₹)"><input className="input-field" type="number" value={monthly} onChange={e => setMonthly(e.target.value)} placeholder="5000" /></FieldRow>
             <FieldRow label="Expected Return (% p.a.)"><input className="input-field" type="number" step="0.1" value={rate} onChange={e => setRate(e.target.value)} placeholder="12" /></FieldRow>
             <FieldRow label="Years"><input className="input-field" type="number" value={years} onChange={e => setYears(e.target.value)} placeholder="10" /></FieldRow>
-            <button className="btn-primary" onClick={calc} disabled={loading || !monthly} style={{ width: '100%', justifyContent: 'center' }}>{loading ? '⏳' : '🧮 Calculate'}</button>
+            <button className="btn-primary" onClick={doCalc} disabled={loading || !monthly} style={{ width: '100%', justifyContent: 'center' }}>{loading ? '⏳' : '🧮 Calculate'}</button>
         </div>
     );
 }
 
 function PPFForm({ onResult, loading, setLoading }: any) {
     const [annual, setAnnual] = useState(''); const [years, setYears] = useState('15');
-    const calc = async () => {
+    const doCalc = () => {
         setLoading(true);
-        try { const r = await api.calcPPF({ annual_investment: +annual, tenure_years: +years }); onResult(r); } catch (e: any) { alert(e.message); }
+        try { onResult(calc.calcPPF({ annual_investment: +annual, tenure_years: +years })); } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
     return (
@@ -157,16 +157,16 @@ function PPFForm({ onResult, loading, setLoading }: any) {
             <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>🏦 PPF Calculator</h3>
             <FieldRow label="Annual Deposit (₹)"><input className="input-field" type="number" value={annual} onChange={e => setAnnual(e.target.value)} placeholder="150000" /></FieldRow>
             <FieldRow label="Years (min 15)"><input className="input-field" type="number" min="15" value={years} onChange={e => setYears(e.target.value)} /></FieldRow>
-            <button className="btn-primary" onClick={calc} disabled={loading || !annual} style={{ width: '100%', justifyContent: 'center' }}>{loading ? '⏳' : '🧮 Calculate'}</button>
+            <button className="btn-primary" onClick={doCalc} disabled={loading || !annual} style={{ width: '100%', justifyContent: 'center' }}>{loading ? '⏳' : '🧮 Calculate'}</button>
         </div>
     );
 }
 
 function GSTForm({ onResult, loading, setLoading }: any) {
     const [amount, setAmount] = useState(''); const [rate, setRate] = useState('18'); const [type, setType] = useState('exclusive'); const [inter, setInter] = useState(false);
-    const calc = async () => {
+    const doCalc = () => {
         setLoading(true);
-        try { const r = await api.calcGST({ amount: +amount, gst_rate: +rate, is_inclusive: type === 'inclusive', is_inter_state: inter }); onResult(r); } catch (e: any) { alert(e.message); }
+        try { onResult(calc.calcGST({ amount: +amount, gst_rate: +rate, is_inclusive: type === 'inclusive', is_inter_state: inter })); } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
     return (
@@ -190,7 +190,7 @@ function GSTForm({ onResult, loading, setLoading }: any) {
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}><input type="radio" checked={inter} onChange={() => setInter(true)} /> Interstate (IGST)</label>
                 </div>
             </FieldRow>
-            <button className="btn-primary" onClick={calc} disabled={loading || !amount} style={{ width: '100%', justifyContent: 'center' }}>{loading ? '⏳' : '🧮 Calculate'}</button>
+            <button className="btn-primary" onClick={doCalc} disabled={loading || !amount} style={{ width: '100%', justifyContent: 'center' }}>{loading ? '⏳' : '🧮 Calculate'}</button>
         </div>
     );
 }
@@ -367,14 +367,14 @@ function TDSForm({ onResult, loading, setLoading }: any) {
     const [section, setSection] = useState('194A');
     const [amount, setAmount] = useState(100000);
     const [pan, setPan] = useState(true);
-    const calc = async () => { setLoading(true); try { const r = await api.calcTDS({ section, amount, pan_available: pan }); onResult(r); } catch { } setLoading(false); };
+    const doCalc = () => { setLoading(true); try { onResult(calc.calcTDS({ section, amount, pan_available: pan })); } catch { } setLoading(false); };
     return (<div>
         <FieldRow label="TDS Section"><select className="form-input" value={section} onChange={e => setSection(e.target.value)}>
             {['192', '194A', '194C_IND', '194C_OTH', '194H', '194I_LAND', '194I_EQUIP', '194J_TECH', '194J_PROF', '194Q', '194R', '194S'].map(s => <option key={s} value={s}>{s}</option>)}
         </select></FieldRow>
         <FieldRow label="Amount (₹)"><input className="form-input" type="number" value={amount} onChange={e => setAmount(+e.target.value)} /></FieldRow>
         <FieldRow label="PAN Available"><select className="form-input" value={pan ? 'yes' : 'no'} onChange={e => setPan(e.target.value === 'yes')}><option value="yes">Yes</option><option value="no">No (20% rate)</option></select></FieldRow>
-        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate TDS'}</button>
+        <button className="btn-primary" onClick={doCalc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate TDS'}</button>
     </div>);
 }
 
@@ -382,12 +382,12 @@ function GratuityForm({ onResult, loading, setLoading }: any) {
     const [salary, setSalary] = useState(50000);
     const [years, setYears] = useState(10);
     const [covered, setCovered] = useState(true);
-    const calc = async () => { setLoading(true); try { const r = await api.calcGratuity({ last_drawn_salary: salary, years_of_service: years, is_covered: covered }); onResult(r); } catch { } setLoading(false); };
+    const doCalc = () => { setLoading(true); try { onResult(calc.calcGratuity({ last_drawn_salary: salary, years_of_service: years, is_covered: covered })); } catch { } setLoading(false); };
     return (<div>
         <FieldRow label="Last Drawn Basic+DA (₹)"><input className="form-input" type="number" value={salary} onChange={e => setSalary(+e.target.value)} /></FieldRow>
         <FieldRow label="Years of Service"><input className="form-input" type="number" value={years} onChange={e => setYears(+e.target.value)} /></FieldRow>
         <FieldRow label="Covered Under Act"><select className="form-input" value={covered ? 'yes' : 'no'} onChange={e => setCovered(e.target.value === 'yes')}><option value="yes">Yes (10+ employees)</option><option value="no">No</option></select></FieldRow>
-        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate Gratuity'}</button>
+        <button className="btn-primary" onClick={doCalc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate Gratuity'}</button>
     </div>);
 }
 
@@ -396,13 +396,13 @@ function NPSForm({ onResult, loading, setLoading }: any) {
     const [employer, setEmployer] = useState(5000);
     const [years, setYears] = useState(25);
     const [rate, setRate] = useState(10);
-    const calc = async () => { setLoading(true); try { const r = await api.calcNPS({ monthly_contribution: monthly, employer_contribution: employer, years, expected_return: rate }); onResult(r); } catch { } setLoading(false); };
+    const doCalc = () => { setLoading(true); try { onResult(calc.calcNPS({ monthly_contribution: monthly, employer_contribution: employer, years, expected_return: rate })); } catch { } setLoading(false); };
     return (<div>
         <FieldRow label="Monthly Contribution (₹)"><input className="form-input" type="number" value={monthly} onChange={e => setMonthly(+e.target.value)} /></FieldRow>
         <FieldRow label="Employer Contribution (₹)"><input className="form-input" type="number" value={employer} onChange={e => setEmployer(+e.target.value)} /></FieldRow>
         <FieldRow label="Investment Period (yrs)"><input className="form-input" type="number" value={years} onChange={e => setYears(+e.target.value)} /></FieldRow>
         <FieldRow label="Expected Return (%)"><input className="form-input" type="number" step="0.5" value={rate} onChange={e => setRate(+e.target.value)} /></FieldRow>
-        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate NPS'}</button>
+        <button className="btn-primary" onClick={doCalc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate NPS'}</button>
     </div>);
 }
 
@@ -411,7 +411,7 @@ function CapitalGainsForm({ onResult, loading, setLoading }: any) {
     const [buyPrice, setBuyPrice] = useState(100000);
     const [sellPrice, setSellPrice] = useState(200000);
     const [holdMonths, setHoldMonths] = useState(24);
-    const calc = async () => { setLoading(true); try { const r = await api.calcCapitalGains({ asset_type: assetType, purchase_price: buyPrice, sale_price: sellPrice, holding_period_months: holdMonths }); onResult(r); } catch { } setLoading(false); };
+    const doCalc = () => { setLoading(true); try { onResult(calc.calcCapitalGains({ asset_type: assetType, purchase_price: buyPrice, sale_price: sellPrice, holding_period_months: holdMonths })); } catch { } setLoading(false); };
     return (<div>
         <FieldRow label="Asset Type"><select className="form-input" value={assetType} onChange={e => setAssetType(e.target.value)}>
             {['Equity Shares', 'Equity MF', 'Debt MF', 'Real Estate', 'Gold', 'Other'].map(t => <option key={t}>{t}</option>)}
@@ -419,7 +419,7 @@ function CapitalGainsForm({ onResult, loading, setLoading }: any) {
         <FieldRow label="Purchase Price (₹)"><input className="form-input" type="number" value={buyPrice} onChange={e => setBuyPrice(+e.target.value)} /></FieldRow>
         <FieldRow label="Sale Price (₹)"><input className="form-input" type="number" value={sellPrice} onChange={e => setSellPrice(+e.target.value)} /></FieldRow>
         <FieldRow label="Holding Period (months)"><input className="form-input" type="number" value={holdMonths} onChange={e => setHoldMonths(+e.target.value)} /></FieldRow>
-        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate Capital Gains'}</button>
+        <button className="btn-primary" onClick={doCalc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate Capital Gains'}</button>
     </div>);
 }
 
@@ -428,7 +428,7 @@ function FDForm({ onResult, loading, setLoading }: any) {
     const [rate, setRate] = useState(7.5);
     const [months, setMonths] = useState(36);
     const [comp, setComp] = useState('quarterly');
-    const calc = async () => { setLoading(true); try { const r = await api.calcFD({ principal, annual_rate: rate, tenure_months: months, compounding: comp }); onResult(r); } catch { } setLoading(false); };
+    const doCalc = () => { setLoading(true); try { onResult(calc.calcFD({ principal, annual_rate: rate, tenure_months: months, compounding: comp })); } catch { } setLoading(false); };
     return (<div>
         <FieldRow label="Principal (₹)"><input className="form-input" type="number" value={principal} onChange={e => setPrincipal(+e.target.value)} /></FieldRow>
         <FieldRow label="Annual Rate (%)"><input className="form-input" type="number" step="0.1" value={rate} onChange={e => setRate(+e.target.value)} /></FieldRow>
@@ -436,7 +436,7 @@ function FDForm({ onResult, loading, setLoading }: any) {
         <FieldRow label="Compounding"><select className="form-input" value={comp} onChange={e => setComp(e.target.value)}>
             {['monthly', 'quarterly', 'half-yearly', 'annually'].map(c => <option key={c} value={c}>{c}</option>)}
         </select></FieldRow>
-        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate FD'}</button>
+        <button className="btn-primary" onClick={doCalc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate FD'}</button>
     </div>);
 }
 
@@ -444,12 +444,12 @@ function RDForm({ onResult, loading, setLoading }: any) {
     const [monthly, setMonthly] = useState(5000);
     const [rate, setRate] = useState(7);
     const [months, setMonths] = useState(60);
-    const calc = async () => { setLoading(true); try { const r = await api.calcRD({ monthly_deposit: monthly, annual_rate: rate, tenure_months: months }); onResult(r); } catch { } setLoading(false); };
+    const doCalc = () => { setLoading(true); try { onResult(calc.calcRD({ monthly_deposit: monthly, annual_rate: rate, tenure_months: months })); } catch { } setLoading(false); };
     return (<div>
         <FieldRow label="Monthly Deposit (₹)"><input className="form-input" type="number" value={monthly} onChange={e => setMonthly(+e.target.value)} /></FieldRow>
         <FieldRow label="Annual Rate (%)"><input className="form-input" type="number" step="0.1" value={rate} onChange={e => setRate(+e.target.value)} /></FieldRow>
         <FieldRow label="Tenure (months)"><input className="form-input" type="number" value={months} onChange={e => setMonths(+e.target.value)} /></FieldRow>
-        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate RD'}</button>
+        <button className="btn-primary" onClick={doCalc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate RD'}</button>
     </div>);
 }
 
@@ -458,7 +458,7 @@ function DepreciationForm({ onResult, loading, setLoading }: any) {
     const [assetType, setAssetType] = useState('Computer/Software');
     const [method, setMethod] = useState('WDV');
     const [years, setYears] = useState(5);
-    const calc = async () => { setLoading(true); try { const r = await api.calcDepreciation({ asset_cost: cost, asset_type: assetType, method, years_to_calculate: years }); onResult(r); } catch { } setLoading(false); };
+    const doCalc = () => { setLoading(true); try { onResult(calc.calcDepreciation({ asset_cost: cost, asset_type: assetType, method, years_to_calculate: years })); } catch { } setLoading(false); };
     return (<div>
         <FieldRow label="Asset Cost (₹)"><input className="form-input" type="number" value={cost} onChange={e => setCost(+e.target.value)} /></FieldRow>
         <FieldRow label="Asset Type"><select className="form-input" value={assetType} onChange={e => setAssetType(e.target.value)}>
@@ -468,14 +468,14 @@ function DepreciationForm({ onResult, loading, setLoading }: any) {
             <option value="WDV">WDV (IT Act)</option><option value="SLM">SLM (Companies Act)</option>
         </select></FieldRow>
         <FieldRow label="Years"><input className="form-input" type="number" value={years} onChange={e => setYears(+e.target.value)} /></FieldRow>
-        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate Depreciation'}</button>
+        <button className="btn-primary" onClick={doCalc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : 'Calculate Depreciation'}</button>
     </div>);
 }
 
 function RegimeForm({ onResult, loading, setLoading }: any) {
     const [f, setF] = useState({ gross_salary: 1200000, other_income: 0, hra_exemption: 120000, lta: 0, professional_tax: 2400, section_80c: 150000, section_80d_self: 25000, section_80d_parents: 0, section_80e: 0, section_80tta: 10000, home_loan_interest: 0, nps_80ccd: 50000, nps_employer: 0, other_deductions: 0 });
     const set = (k: string, v: number) => setF({ ...f, [k]: v });
-    const calc = async () => { setLoading(true); try { const r = await api.calcRegimeOptimizer(f); onResult(r); } catch { } setLoading(false); };
+    const doCalc = () => { setLoading(true); try { onResult(calc.calcRegimeOptimizer(f)); } catch { } setLoading(false); };
     return (<div style={{ fontSize: 13 }}>
         <FieldRow label="Gross Salary (₹)"><input className="form-input" type="number" value={f.gross_salary} onChange={e => set('gross_salary', +e.target.value)} /></FieldRow>
         <FieldRow label="Other Income (₹)"><input className="form-input" type="number" value={f.other_income} onChange={e => set('other_income', +e.target.value)} /></FieldRow>
@@ -487,32 +487,32 @@ function RegimeForm({ onResult, loading, setLoading }: any) {
         <FieldRow label="80TTA"><input className="form-input" type="number" value={f.section_80tta} onChange={e => set('section_80tta', +e.target.value)} /></FieldRow>
         <FieldRow label="Home Loan Int."><input className="form-input" type="number" value={f.home_loan_interest} onChange={e => set('home_loan_interest', +e.target.value)} /></FieldRow>
         <FieldRow label="NPS (80CCD)"><input className="form-input" type="number" value={f.nps_80ccd} onChange={e => set('nps_80ccd', +e.target.value)} /></FieldRow>
-        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Analyzing...' : '⚡ Compare Old vs New Regime'}</button>
+        <button className="btn-primary" onClick={doCalc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Analyzing...' : '⚡ Compare Old vs New Regime'}</button>
     </div>);
 }
 
 function AdvanceTaxForm({ onResult, loading, setLoading }: any) {
     const [liability, setLiability] = useState('');
     const [tds, setTds] = useState('0');
-    const calc = async () => {
+    const doCalc = () => {
         setLoading(true);
-        try { const r = await api.calcAdvanceTax({ total_tax_liability: +liability, tds_deducted: +tds }); onResult(r); } catch (e: any) { alert(e.message); }
+        try { onResult(calc.calcAdvanceTax({ total_tax_liability: +liability, tds_deducted: +tds })); } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
     return (<div>
         <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>📅 Advance Tax Calculator</h3>
         <FieldRow label="Total Tax Liability (₹)"><input className="input-field" type="number" value={liability} onChange={e => setLiability(e.target.value)} placeholder="500000" /></FieldRow>
         <FieldRow label="TDS Already Deducted (₹)"><input className="input-field" type="number" value={tds} onChange={e => setTds(e.target.value)} placeholder="120000" /></FieldRow>
-        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : '📅 Calculate Quarterly Instalments'}</button>
+        <button className="btn-primary" onClick={doCalc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : '📅 Calculate Quarterly Instalments'}</button>
     </div>);
 }
 
 function ProfessionalTaxForm({ onResult, loading, setLoading }: any) {
     const [salary, setSalary] = useState('');
     const [state, setState] = useState('maharashtra');
-    const calc = async () => {
+    const doCalc = () => {
         setLoading(true);
-        try { const r = await api.calcProfessionalTax({ monthly_salary: +salary, state }); onResult(r); } catch (e: any) { alert(e.message); }
+        try { onResult(calc.calcProfessionalTax({ monthly_salary: +salary, state })); } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
     return (<div>
@@ -527,7 +527,7 @@ function ProfessionalTaxForm({ onResult, loading, setLoading }: any) {
                 <option value="gujarat">Gujarat</option>
             </select>
         </FieldRow>
-        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : '🏢 Calculate Professional Tax'}</button>
+        <button className="btn-primary" onClick={doCalc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : '🏢 Calculate Professional Tax'}</button>
     </div>);
 }
 
@@ -536,9 +536,9 @@ function StampDutyForm({ onResult, loading, setLoading }: any) {
     const [state, setState] = useState('maharashtra');
     const [type, setType] = useState('residential');
     const [isFemale, setIsFemale] = useState(false);
-    const calc = async () => {
+    const doCalc = () => {
         setLoading(true);
-        try { const r = await api.calcStampDuty({ property_value: +value, state, property_type: type, is_female: isFemale }); onResult(r); } catch (e: any) { alert(e.message); }
+        try { onResult(calc.calcStampDuty({ property_value: +value, state, property_type: type, is_female: isFemale })); } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
     return (<div>
@@ -570,7 +570,7 @@ function StampDutyForm({ onResult, loading, setLoading }: any) {
                 Yes (get concession where applicable)
             </label>
         </FieldRow>
-        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : '🏠 Calculate Stamp Duty'}</button>
+        <button className="btn-primary" onClick={doCalc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : '🏠 Calculate Stamp Duty'}</button>
     </div>);
 }
 
@@ -578,9 +578,9 @@ function CryptoTaxForm({ onResult, loading, setLoading }: any) {
     const [buy, setBuy] = useState('');
     const [sell, setSell] = useState('');
     const [qty, setQty] = useState('1');
-    const calc = async () => {
+    const doCalc = () => {
         setLoading(true);
-        try { const r = await api.calcCryptoTax({ buy_price: +buy, sell_price: +sell, quantity: +qty }); onResult(r); } catch (e: any) { alert(e.message); }
+        try { onResult(calc.calcCryptoTax({ buy_price: +buy, sell_price: +sell, quantity: +qty })); } catch (e: any) { alert(e.message); }
         setLoading(false);
     };
     return (<div>
@@ -588,7 +588,7 @@ function CryptoTaxForm({ onResult, loading, setLoading }: any) {
         <FieldRow label="Buy Price per Unit (₹)"><input className="input-field" type="number" value={buy} onChange={e => setBuy(e.target.value)} placeholder="50000" /></FieldRow>
         <FieldRow label="Sell Price per Unit (₹)"><input className="input-field" type="number" value={sell} onChange={e => setSell(e.target.value)} placeholder="80000" /></FieldRow>
         <FieldRow label="Quantity"><input className="input-field" type="number" value={qty} onChange={e => setQty(e.target.value)} placeholder="2" /></FieldRow>
-        <button className="btn-primary" onClick={calc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : '🪙 Calculate Crypto Tax'}</button>
+        <button className="btn-primary" onClick={doCalc} disabled={loading} style={{ width: '100%', marginTop: 12 }}>{loading ? 'Calculating...' : '🪙 Calculate Crypto Tax'}</button>
     </div>);
 }
 
