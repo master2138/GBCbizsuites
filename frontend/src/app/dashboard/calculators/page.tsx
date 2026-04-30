@@ -202,8 +202,7 @@ function ResultDisplay({ data, tab }: { data: any; tab: number }) {
     if (tab === 3) return <SIPResult data={data} />;
     if (tab === 4) return <PPFResult data={data} />;
     if (tab === 5) return <GSTResult data={data} />;
-    if (tab >= 6 && tab <= 13) return <GenericResult data={data} />;
-    return null;
+    if (tab >= 6 && tab <= 17) return <GenericResult data={data} />;
 }
 
 function ResultRow({ label, value, color, bold }: { label: string; value: string | number; color?: string; bold?: boolean }) {
